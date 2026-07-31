@@ -1,0 +1,3 @@
+numpy
+pydantic<3,>=2
+llm_sdk
