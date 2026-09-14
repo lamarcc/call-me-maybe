@@ -1,9 +1,0 @@
-README.md
-pyproject.toml
-src/__init__.py
-src/__main__.py
-src/callmemaybe.egg-info/PKG-INFO
-src/callmemaybe.egg-info/SOURCES.txt
-src/callmemaybe.egg-info/dependency_links.txt
-src/callmemaybe.egg-info/requires.txt
-src/callmemaybe.egg-info/top_level.txt
