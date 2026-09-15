@@ -1,2 +1,9 @@
+SRC = src/
+PY = python3
+
 run:
-	uv run src/__main__.py
+	uv run $(SRC)
+
+lint:
+	flake8 $(SRC)
+	$(PY) -m mypy $(SRC)
