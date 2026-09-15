@@ -1,6 +1,6 @@
 [
   {
-    "name": "fn_add_numbers",
+    "name": 4,
     "description": "Add two numbers together and return their sum.",
     "parameters": {
       "a": {
