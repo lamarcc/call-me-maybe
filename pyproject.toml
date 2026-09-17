@@ -5,7 +5,9 @@ requires-python = ">=3.10"
 dependencies = [
   "numpy",
   "pydantic>=2,<3",
-  "llm_sdk"
+  "llm_sdk",
+  "torch",
+  "accelerate>=1.15.0",
 ]
 
 [tool.uv.sources]
