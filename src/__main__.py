@@ -1,6 +1,6 @@
 # from llm_sdk import Small_LLM_Model
 import parsing
-import thinking
+import generate
 from sys import argv
 
 
@@ -16,6 +16,8 @@ if __name__ == "__main__":
         if "--output" in argv:
             output_path = argv[argv.find("--functions_definition") + 1]
     test = parsing.Parse(f_path, p_path)
-    # test.prompt()
-    # test.function()
-    thinking.Vocab.generate()
+    test.prompt()
+    test.function()
+    gener = generate.Generator(test.all_functions, test.all_prompts)
+    for prompt in test.all_prompts:
+        gener.generate_function_name(prompt)
