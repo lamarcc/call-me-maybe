@@ -74,16 +74,15 @@ class Generator():
             if agent.decode(result) in self.all_function_name:
                 return (agent.decode(result))
 
-    def generate_param(self, prompt):
+    def generate_param(self, function, prompt):
         context = (
             "<|im_start|>system\n"
             "You are an AI Assistant that will help by giving\n"
-            "the correct parameters from a\n"
-            "given list of known functions\n"
+            "the correct parameters from the given function\n"
             "We dont want any text or thinking explanation\n"
-            "only the good parameters in the format of the exemple\n"
-            "Here are the known function and the parameters:\n"
-            f"{self.functions}\n"
+            "only the good parameters returned, check the descriptions, you cant return more than {len(function.parameters.keys())}\n"
+            # "Here is the function from wich you need to extract the good parameters based from the user's prompt:\n"
+            f"{function}\n"
             "<|im_end|>"
             "<|im_start|>user\n"
             f"{prompt}<|im_end|>\n"
@@ -91,7 +90,6 @@ class Generator():
             "<think>\n\n</think>\n\n"
         )
         result = []
-        already_generated = []
         context_tokenized = agent.encode(context).tolist()[0]
         while True:
             logit = agent.get_logits_from_input_ids(context_tokenized)
