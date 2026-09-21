@@ -1,17 +1,5 @@
 [
 {
-    "name": "fn_calculate_sum",
-    "description": "Add a list of numbers together and return their total sum.",
-    "parameters": {
-      "numbers": {
-        "type": "array"
-      }
-    },
-    "returns": {
-      "type": "number"
-    }
-},
-{
     "name": "fn_calculate_average",
     "description": "Compute the average (mean) value of a list of numbers.",
     "parameters": {

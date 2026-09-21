@@ -36,10 +36,11 @@ class Generator():
             allowed_ids.extend(encoded)
         return np.array(allowed_ids, dtype=np.int32)
 
-    def mask_logits(self, allowed, logits):
+    def mask_logits(self, allowed_tokens, logits, already_generated):
         logits = np.asarray(logits, dtype=np.float32)
         masked = np.full_like(logits, -np.inf, dtype=np.float32)
-        masked[allowed] = logits[allowed]
+        masked[allowed_tokens] = logits[allowed_tokens]
+        masked[already_generated] = -np.inf
         return masked
 
     def generate_function_name(self, prompt):
@@ -59,15 +60,17 @@ class Generator():
             "<think>\n\n</think>\n\n"
         )
         result = []
-        token = agent.encode(context).tolist()[0]
-        allowed = self.get_allowed_function()
+        already_generated = []
+        context_tokenized = agent.encode(context).tolist()[0]
+        allowed_function = self.get_allowed_function()
         while True:
-            logit = agent.get_logits_from_input_ids(token)
-            print(agent.decode(logit.index(max(logit))))
-            mask = self.mask_logits(allowed, logit)
+            logits = agent.get_logits_from_input_ids(context_tokenized)
+            mask = self.mask_logits(allowed_function, logits, already_generated)
             context += agent.decode([int(mask.argmax())])
-            result.append(int(mask.argmax()))
-            token.append(int(mask.argmax()))
+            token_generated = int(mask.argmax())
+            already_generated.append(token_generated)
+            context_tokenized.append(token_generated)
+            result.append(token_generated)
             if agent.decode(result) in self.all_function_name:
                 return (agent.decode(result))
 
@@ -88,14 +91,14 @@ class Generator():
             "<think>\n\n</think>\n\n"
         )
         result = []
-        token = agent.encode(context).tolist()[0]
-        # allowed = self.get_allowed_param()
+        already_generated = []
+        context_tokenized = agent.encode(context).tolist()[0]
         while True:
-            logit = agent.get_logits_from_input_ids(token)
-            # mask = self.mask_logits(allowed, logit)
-            context += agent.decode([int(logit.index(max(logit)))])
-            result.append(int(logit.index(max(logit))))
-            token.append(int(logit.index(max(logit))))
-            print(agent.decode(result))
-            # if agent.decode(result) in self.all_function_name:
-            #     return (agent.decode(result))
+            logit = agent.get_logits_from_input_ids(context_tokenized)
+            r = int(logit.index(max(logit)))
+            context += agent.decode(r)
+            result.append(r)
+            context_tokenized.append(r)
+            print(agent.decode(r))
+            if "}" in agent.decode(r) or agent.decode(r) is None:
+                return (agent.decode(result))

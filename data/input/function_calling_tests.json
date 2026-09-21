@@ -1,12 +1,9 @@
 [
   {
-    "prompt": "What is the average of 10, 20 and 30?"
-  },
-  {
     "prompt": "What is the sum of 10, 20 and 30?"
   },
   {
-    "prompt": "Calculate something with 10, 20 and 30"
+    "prompt": "Calculate the average of 10, 20 and 30"
   },
   {
     "prompt": "What is the sum of 2 and 3.533"
