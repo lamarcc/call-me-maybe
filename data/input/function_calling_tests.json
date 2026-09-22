@@ -1,12 +1,12 @@
 [
   {
-    "prompt": "What is the sum of 10, 20, 60 and 30?"
+    "prompt": "Greet john"
   },
   {
     "prompt": "Calculate the average of 10, 20 and 30"
   },
   {
-    "prompt": "What is the sum of 2 and 3.533"
+    "prompt": "What is the result of 2 plus 3.533"
   },
   {
     "prompt": "What is the sum of 265 and 345?"
@@ -15,7 +15,7 @@
     "prompt": "Greet shrek"
   },
   {
-    "prompt": "Greet john"
+    "prompt": "Greet 'john'"
   },
   {
     "prompt": "Reverse the string 'hello'"

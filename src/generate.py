@@ -75,17 +75,48 @@ class Generator():
                 return (agent.decode(result))
 
     def generate_param(self, function, prompt):
+        p_name = []
+        typeu = []
+        for parameter_name in function.parameters.keys():
+            p_name.append(parameter_name)
+            for _, name in function.parameters[parameter_name].items():
+                typeu.append(name)
+        print(p_name)
+        print(typeu)
         context = (
             "<|im_start|>system\n"
-            "You are an AI Assistant that will help by giving\n"
-            "the correct parameters from the given function\n"
-            "We dont want any text or thinking explanation\n"
-            "only the good parameters returned, check the descriptions, you cant return more than {len(function.parameters.keys())}\n"
-            # "Here is the function from wich you need to extract the good parameters based from the user's prompt:\n"
-            f"{function}\n"
-            "<|im_end|>"
+            "You are a parameter-typing engine for function calls.\n"
+            "Your only task is to determine, for each parameter defined in the schema below, "
+            "the correct type and the correct value, strictly based on the user's request.\n\n"
+
+            "Rules:\n"
+            "- Return ONLY the parameter values. Do not return the function name.\n"
+            "- Do not explain your reasoning.\n"
+            "- Do not calculate, execute, transform, or answer the user's request.\n"
+            "- Do not invent values that are not supported by the user's request.\n"
+            "- For each parameter in the schema, return its type and its value, nothing else.\n"
+            "- Do not return parameter names, only their type and value.\n"
+            "- Return values for every parameter defined in the schema, with no missing entries.\n"
+            "- Return no extra entries that are not defined in the schema.\n"
+            "- Each value must match exactly the type declared in the schema for that parameter.\n"
+            "- If a parameter type is number, output a JSON number in float format, without quotes.\n"
+            "- If a parameter type is string, output a JSON string, with double quotes.\n"
+            "- If a parameter type is boolean, output a JSON boolean (true or false), without quotes.\n"
+            "- Output must be valid JSON and must contain only the JSON object, nothing before or after.\n\n"
+
+            f"Function name:\n{function.name}\n\n"
+            f"Function description:\n{function.description}\n\n"
+            f"Parameter name:\n{p_name}\n\n"
+            f"Parameter value type:\n{typeu}\n\n"
+
+            "Required output shape:\n"
+            '{"parameter_name": parameter_value}\n'
+            "<|im_end|>\n"
+
             "<|im_start|>user\n"
-            f"{prompt}<|im_end|>\n"
+            f"{prompt}\n"
+            "<|im_end|>\n"
+
             "<|im_start|>assistant<|im_end|>\n"
             "<think>\n\n</think>\n\n"
         )
