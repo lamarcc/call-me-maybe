@@ -62,3 +62,15 @@ class FileNotFoundErr(ParsingError):
     def __str__(self) -> Any:
         error = super().__str__()
         return error + self.message
+
+
+class InvalidParameterValue(ParsingError):
+    name = "InvalidParameterValue"
+
+    def __init__(self, message: str) -> None:
+        self.message = message
+        super().__init__(InvalidParameterValue.name)
+
+    def __str__(self) -> Any:
+        error = super().__str__()
+        return error + self.message

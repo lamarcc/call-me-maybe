@@ -74,50 +74,74 @@ class Generator():
             if agent.decode(result) in self.all_function_name:
                 return (agent.decode(result))
 
-    def generate_param(self, function, prompt):
-        p_name = []
-        typeu = []
-        for parameter_name in function.parameters.keys():
-            p_name.append(parameter_name)
-            for _, name in function.parameters[parameter_name].items():
-                typeu.append(name)
-        print(p_name)
-        print(typeu)
+    def is_valid_value_type(self, value_list: list) -> bool:
+        allowed_value_type: list[str] = [
+            "number", "integer", "float", "string", "bool", "array"
+        ]
+        for verif in value_list:
+            if verif not in allowed_value_type:
+                return False
+        return True
+
+    def extract_param_value(self, function, prompt):
+        parameter_name = []
+        value_type = []
+        for p_name in function.parameters.keys():
+            parameter_name.append(p_name)
+            for _, name in function.parameters[p_name].items():
+                value_type.append(name)
+        if not self.is_valid_value_type(value_type):
+            raise errors.InvalidParameterValue(f'Invalid value type for <{function.name}>')
+        return parameter_name, value_type
+
+    def get_value(self, function, prompt, parameters, values) -> None:
         context = (
             "<|im_start|>system\n"
-            "You are a parameter-typing engine for function calls.\n"
-            "Your only task is to determine, for each parameter defined in the schema below, "
-            "the correct type and the correct value, strictly based on the user's request.\n\n"
+            "You are a function-calling engine.\n"
+            "Given a user request and a function, you must:\n"
+            "1. Return every parameter defined in function's schema, "
+            "using exactly the parameter names given in the schema.\n"
+            "3. For each parameter, return a value that matches exactly the type "
+            "declared in the schema for that parameter (number, string, boolean, etc.).\n\n"
 
             "Rules:\n"
-            "- Return ONLY the parameter values. Do not return the function name.\n"
             "- Do not explain your reasoning.\n"
             "- Do not calculate, execute, transform, or answer the user's request.\n"
             "- Do not invent values that are not supported by the user's request.\n"
-            "- For each parameter in the schema, return its type and its value, nothing else.\n"
-            "- Do not return parameter names, only their type and value.\n"
-            "- Return values for every parameter defined in the schema, with no missing entries.\n"
-            "- Return no extra entries that are not defined in the schema.\n"
-            "- Each value must match exactly the type declared in the schema for that parameter.\n"
-            "- If a parameter type is number, output a JSON number in float format, without quotes.\n"
-            "- If a parameter type is string, output a JSON string, with double quotes.\n"
-            "- If a parameter type is boolean, output a JSON boolean (true or false), without quotes.\n"
-            "- Output must be valid JSON and must contain only the JSON object, nothing before or after.\n\n"
+            "- Use exactly the parameter names as given in the function's schema.\n"
+            "- Return every parameter defined in the schema, with no missing entries.\n"
+            "- Return no extra parameters that are not defined in the schema.\n"
+            "- Write each parameter as: parameter_name: \"parameter_value\"\n"
+            "- Always wrap the value in double quotes, no matter its type.\n"
+            "- Write one parameter per line.\n"
+            "- Do not wrap the output in JSON, braces, or brackets.\n"
+            "- After writing all the parameters, output the end-of-sequence token to stop generation.\n"
+            "- Do not add any text before or after the parameter lines.\n\n"
 
-            f"Function name:\n{function.name}\n\n"
-            f"Function description:\n{function.description}\n\n"
-            f"Parameter name:\n{p_name}\n\n"
-            f"Parameter value type:\n{typeu}\n\n"
+            "The function to give the parameters from:\n"
+            f"{function}\n\n"
 
-            "Required output shape:\n"
-            '{"parameter_name": parameter_value}\n'
+            "Required output shape (one line per parameter):\n"
+            '"parameter_name": "parameter_value"\n'
+            '"parameter_name": "parameter_value"\n\n'
+
+            "Example for string parameter:\n"
+            "User prompt: Reverse the string 'hello'\n"
+            "Output:\n"
+            '"s": "hello"\n\n'
+
+            "Example for number parameters:\n"
+            "User prompt: Add 3 and 5\n"
+            "Output:\n"
+            '"a": "3.0"\n'
+            '"b": "5.0"\n'
             "<|im_end|>\n"
 
             "<|im_start|>user\n"
             f"{prompt}\n"
             "<|im_end|>\n"
 
-            "<|im_start|>assistant<|im_end|>\n"
+            "<|im_start|>assistant\n"
             "<think>\n\n</think>\n\n"
         )
         result = []
@@ -129,5 +153,3 @@ class Generator():
             result.append(r)
             context_tokenized.append(r)
             print(agent.decode(r))
-            if "}" in agent.decode(r) or agent.decode(r) is None:
-                return (agent.decode(result))

@@ -21,5 +21,5 @@ if __name__ == "__main__":
     gener = generate.Generator(test.all_functions, test.all_prompts)
     for prompt in test.all_prompts:
         f = test.all_functions[gener.generate_function_name(prompt)]
-        # print(f)
-        print(gener.generate_param(f, prompt))
+        p, v = gener.extract_param_value(f, prompt)
+        print(gener.get_value(f, prompt, p, v))
