@@ -1,6 +1,6 @@
 from __future__ import annotations
 from llm_sdk import Small_LLM_Model
-from enum import Enum, auto
+from masking import Mask
 import numpy as np
 import errors
 import torch
@@ -13,37 +13,27 @@ class Generator():
     path = agent.get_path_to_vocab_file()
 
     def __init__(self, functions, prompts) -> None:
+        self.mask = Mask(agent)
         self.functions = functions
         self.prompts = prompts
-        self.all_function_name: list = [function.name for function in [func for func in self.functions.values()]]
-        self.all_function_description: list = [function.description for function in [func for func in self.functions.values()]]
-        self.all_function_parameters: list = [function.parameters for function in [func for func in self.functions.values()]]
-        self.all_function_returns: list = [function.returns for function in [func for func in self.functions.values()]]
+        self.all_function_name: list = [
+            function.name for function in self.functions.values()
+        ]
 
-    def get_allowed_function(self):
+    def get_allowed_function(self, already_generated):
         allowed_tokens = self.all_function_name
-        allowed_ids = []
+        allowed = []
         for name in allowed_tokens:
             encoded = agent.encode(name).tolist()[0]
-            allowed_ids.extend(encoded)
-        return np.array(allowed_ids, dtype=np.int32)
-
-    def get_allowed_param(self):
-        allowed_tokens = self.all_function_parameters
-        allowed_ids = []
-        for name in allowed_tokens:
-            encoded = agent.encode(str(name)).tolist()[0]
-            allowed_ids.extend(encoded)
-        return np.array(allowed_ids, dtype=np.int32)
-
-    def mask_logits(self, allowed_tokens, logits, already_generated):
-        logits = np.asarray(logits, dtype=np.float32)
-        masked = np.full_like(logits, -np.inf, dtype=np.float32)
-        masked[allowed_tokens] = logits[allowed_tokens]
-        masked[already_generated] = -np.inf
-        return masked
+            if already_generated == encoded[:len(already_generated)]:
+                if len(already_generated) < len(encoded):
+                    allowed.append(encoded[len(already_generated)])
+        return np.array(allowed, dtype=np.int32)
 
     def generate_function_name(self, prompt):
+        name = ""
+        for function in self.functions.values():
+            name += f"- {function.name}: {function.description}\n"
         context = (
             "<|im_start|>system\n"
             "You are an AI Assistant that will help by giving\n"
@@ -52,7 +42,7 @@ class Generator():
             "We dont want any text or thinking explanation\n"
             "only the function name\n"
             "Here are the known function:\n"
-            f"{self.functions}"
+            f"{name}"
             "<|im_end|>"
             "<|im_start|>user\n"
             f"{prompt}<|im_end|>\n"
@@ -60,15 +50,12 @@ class Generator():
             "<think>\n\n</think>\n\n"
         )
         result = []
-        already_generated = []
         context_tokenized = agent.encode(context).tolist()[0]
-        allowed_function = self.get_allowed_function()
         while True:
+            allowed = self.get_allowed_function(result)
             logits = agent.get_logits_from_input_ids(context_tokenized)
-            mask = self.mask_logits(allowed_function, logits, already_generated)
-            context += agent.decode([int(mask.argmax())])
+            mask = self.mask.mask_logits(allowed, logits)
             token_generated = int(mask.argmax())
-            already_generated.append(token_generated)
             context_tokenized.append(token_generated)
             result.append(token_generated)
             if agent.decode(result) in self.all_function_name:
@@ -76,7 +63,7 @@ class Generator():
 
     def is_valid_value_type(self, value_list: list) -> bool:
         allowed_value_type: list[str] = [
-            "number", "integer", "float", "string", "bool", "array"
+            "number", "integer", "float", "string", "boolean"
         ]
         for verif in value_list:
             if verif not in allowed_value_type:
@@ -84,57 +71,41 @@ class Generator():
         return True
 
     def extract_param_value(self, function, prompt):
-        parameter_name = []
+        parameters = {}
         value_type = []
-        for p_name in function.parameters.keys():
-            parameter_name.append(p_name)
-            for _, name in function.parameters[p_name].items():
-                value_type.append(name)
+        for p_name, p_type in function.parameters.items():
+            parameters[p_name] = p_type["type"]
         if not self.is_valid_value_type(value_type):
-            raise errors.InvalidParameterValue(f'Invalid value type for <{function.name}>')
-        return parameter_name, value_type
+            raise errors.InvalidParameterValue(
+                f'Invalid value type for <{function.name}>'
+            )
+        return parameters
 
-    def get_value(self, function, prompt, parameters, values) -> None:
+    def get_value(self, function, prompt, parameter, values) -> None:
         context = (
             "<|im_start|>system\n"
-            "You are a function-calling engine.\n"
-            "Given a user request and a function, you must:\n"
-            "1. Return every parameter defined in function's schema, "
-            "using exactly the parameter names given in the schema.\n"
-            "3. For each parameter, return a value that matches exactly the type "
-            "declared in the schema for that parameter (number, string, boolean, etc.).\n\n"
-
-            "Rules:\n"
-            "- Do not explain your reasoning.\n"
-            "- Do not calculate, execute, transform, or answer the user's request.\n"
-            "- Do not invent values that are not supported by the user's request.\n"
-            "- Use exactly the parameter names as given in the function's schema.\n"
-            "- Return every parameter defined in the schema, with no missing entries.\n"
-            "- Return no extra parameters that are not defined in the schema.\n"
-            "- Write each parameter as: parameter_name: \"parameter_value\"\n"
-            "- Always wrap the value in double quotes, no matter its type.\n"
-            "- Write one parameter per line.\n"
-            "- Do not wrap the output in JSON, braces, or brackets.\n"
-            "- After writing all the parameters, output the end-of-sequence token to stop generation.\n"
-            "- Do not add any text before or after the parameter lines.\n\n"
-
-            "The function to give the parameters from:\n"
-            f"{function}\n\n"
-
-            "Required output shape (one line per parameter):\n"
-            '"parameter_name": "parameter_value"\n'
-            '"parameter_name": "parameter_value"\n\n'
-
-            "Example for string parameter:\n"
-            "User prompt: Reverse the string 'hello'\n"
-            "Output:\n"
-            '"s": "hello"\n\n'
-
-            "Example for number parameters:\n"
-            "User prompt: Add 3 and 5\n"
-            "Output:\n"
-            '"a": "3.0"\n'
-            '"b": "5.0"\n'
+            "You are a parameter-value extraction engine.\n"
+            "Your ONLY task is to extract the RAW "
+            "value from the user's request.\n"
+            "DO NOT execute, calculate, or transform the value.\n"
+            "DO NOT return the result of the function.\n"
+            "Just extract the exact value mentioned in the request.\n\n"
+            f"Function: '{function.name}' - {function.description}\n"
+            f"Target parameter: '{parameter}'\n\n"
+            "CRITICAL RULES:\n"
+            "- Return ONLY the raw value as it appears in the request.\n"
+            "- Do NOT include the parameter name.\n"
+            "- Do NOT write 'parameter: value' or 'parameter=value'.\n"
+            "- Just the value, nothing else.\n\n"
+            "Examples:\n"
+            "User: 'Reverse the string hello'\n"
+            "Parameter: 'text'\n"
+            "Correct output: hello\n"
+            "Wrong output: olleh (this is the result, not the raw value)\n\n"
+            "User: 'Sum of 265 and 345'\n"
+            "Parameter: 'a'\n"
+            "Correct output: 265\n"
+            "Wrong output: 610 (this is the result, not the raw value)\n\n"
             "<|im_end|>\n"
 
             "<|im_start|>user\n"
@@ -147,9 +118,13 @@ class Generator():
         result = []
         context_tokenized = agent.encode(context).tolist()[0]
         while True:
-            logit = agent.get_logits_from_input_ids(context_tokenized)
-            r = int(logit.index(max(logit)))
-            context += agent.decode(r)
+            current = agent.decode(result)
+            allowed = self.mask.get_allowed_type(values, current)
+            full = context_tokenized + result
+            logits = agent.get_logits_from_input_ids(full)
+            mask = self.mask.mask_logits(allowed, logits)
+            r = int(mask.argmax())
             result.append(r)
-            context_tokenized.append(r)
-            print(agent.decode(r))
+            print(current)
+            if "}" in agent.decode(result):
+                return agent.decode(result)
