@@ -111,12 +111,13 @@ class Generator():
         context_tokenized = agent.encode(context).tolist()[0]
         while True:
             current = agent.decode(result)
-            allowed = self.mask.get_allowed_type(values, current)
+            # allowed = self.mask.get_allowed_type(values, current)
             full = context_tokenized + result
             logits = agent.get_logits_from_input_ids(full)
-            mask = self.mask.mask_logits(allowed, logits)
-            r = int(mask.argmax())
+            # mask = self.mask.mask_logits(allowed, logits)
+            # r = int(mask.argmax())
+            r = logits.index(max(logits))
             result.append(r)
             print(current)
-            if "}" in agent.decode(result):
+            if "\n" in agent.decode(result):
                 return agent.decode(result)
