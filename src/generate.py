@@ -4,6 +4,7 @@ from masking import Mask
 import numpy as np
 import errors
 import torch
+import json
 
 
 agent = Small_LLM_Model()
@@ -84,35 +85,26 @@ class Generator():
     def get_value(self, function, prompt, parameter, values) -> None:
         context = (
             "<|im_start|>system\n"
-            "You are a parameter-value extraction engine.\n"
-            "Your ONLY task is to extract the RAW "
-            "value from the user's request.\n"
-            "DO NOT execute, calculate, or transform the value.\n"
-            "DO NOT return the result of the function.\n"
-            "Just extract the exact value mentioned in the request.\n\n"
-            f"Function: '{function.name}' - {function.description}\n"
-            f"Target parameter: '{parameter}'\n\n"
-            "CRITICAL RULES:\n"
-            "- Return ONLY the raw value as it appears in the request.\n"
-            "- Do NOT include the parameter name.\n"
-            "- Do NOT write 'parameter: value' or 'parameter=value'.\n"
-            "- Just the value, nothing else.\n\n"
-            "Examples:\n"
-            "User: 'Reverse the string hello'\n"
-            "Parameter: 'text'\n"
-            "Correct output: hello\n"
-            "Wrong output: olleh (this is the result, not the raw value)\n\n"
-            "User: 'Sum of 265 and 345'\n"
-            "Parameter: 'a'\n"
-            "Correct output: 265\n"
-            "Wrong output: 610 (this is the result, not the raw value)\n\n"
+            "You fill one missing function argument from a user's request.\n"
+            "Use the function description and the full parameter list to understand "
+            "the role of each argument.\n"
+            "Use the user's request to determine the missing value.\n"
+            "Do not execute the function. Do not calculate or return its result.\n"
+            "Do not output the parameter name, an explanation, or another argument.\n"
+            "Complete only the missing value after the equals sign.\n"
+            f"Expected type: {values}.\n"
+            "If the value is not clear from the request, do not invent it.\n"
             "<|im_end|>\n"
-
             "<|im_start|>user\n"
-            f"{prompt}\n"
+            f"Function: {function.name}\n"
+            f"Description: {function.description}\n"
+            f"Parameters: {json.dumps(function.parameters, ensure_ascii=False)}\n"
+            f"User request: {prompt.prompt}\n\n"
+            "Fill the blank for this parameter:\n"
+            f"{parameter} = ___\n"
             "<|im_end|>\n"
-
             "<|im_start|>assistant\n"
+            f"{parameter} = "
             "<think>\n\n</think>\n\n"
         )
         result = []

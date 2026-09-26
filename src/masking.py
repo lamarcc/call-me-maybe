@@ -13,8 +13,8 @@ class Mask():
 
     def get_int(self, value) -> np.ndarray:
         allowed = list("0123456789")
-        # if value == "":
-        #     allowed.append("-")
+        if value == "":
+            allowed.append("-")
         allowed_token = set()
         for c in allowed:
             allowed_token.update(self._get_token(c).tolist())
@@ -31,7 +31,7 @@ class Mask():
             allowed_token.update(self._get_token(c).tolist())
         return np.array(list(allowed_token), dtype=np.int32)
 
-    def get_boolean(self, value) -> np.ndarray:
+    def get_boolean(self) -> np.ndarray:
         allowed = set()
         for word in ["true", "false"]:
             allowed.update(self._get_token(word).tolist())
@@ -43,7 +43,7 @@ class Mask():
         if value_type == "float" or value_type == "number":
             return self.get_float(value)
         if value_type == "boolean":
-            return self.get_boolean(value)
+            return self.get_boolean()
         if value_type == "string":
             return None
         raise ValueError(f"Unknown type: {value_type}")
