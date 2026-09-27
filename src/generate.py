@@ -82,42 +82,44 @@ class Generator():
             )
         return parameters
 
-    def get_value(self, function, prompt, parameter, values) -> None:
+    def get_value(self, function, prompt, parameter_name, parameter_type) -> None:
         context = (
             "<|im_start|>system\n"
-            "You fill one missing function argument from a user's request.\n"
-            "Use the function description and the full parameter list to understand "
-            "the role of each argument.\n"
-            "Use the user's request to determine the missing value.\n"
-            "Do not execute the function. Do not calculate or return its result.\n"
-            "Do not output the parameter name, an explanation, or another argument.\n"
-            "Complete only the missing value after the equals sign.\n"
-            f"Expected type: {values}.\n"
-            "If the value is not clear from the request, do not invent it.\n"
+            # "Extract the RAW value from the given user's prompt.\n"
+            # "We only need the value from the given parameter's name"
+            # "Follow the function description\n"
+            f'Function: {function.name} {function.description}\n'
+            f'User Prompt: {prompt.prompt}\n'
+            # 'The regex must be a JSON string. Use ESCAPED BACKSLASHES when required\n'
+            # 'example: {"regex: \\d+}\n'
+            # 'Remove the parenthesis\n'
+            # 'Arguments JSON: {"' + f'{parameter_name}' + '": "'
+            # f"Function: {function.name}\n"
+            # f"Function description: {function.description}\n"
+            # "Note: regex is a raw string starting with backslash symbol\n"
             "<|im_end|>\n"
             "<|im_start|>user\n"
-            f"Function: {function.name}\n"
-            f"Description: {function.description}\n"
-            f"Parameters: {json.dumps(function.parameters, ensure_ascii=False)}\n"
-            f"User request: {prompt.prompt}\n\n"
-            "Fill the blank for this parameter:\n"
-            f"{parameter} = ___\n"
+            f"Prompt: {prompt.prompt}\n"
             "<|im_end|>\n"
             "<|im_start|>assistant\n"
-            f"{parameter} = "
             "<think>\n\n</think>\n\n"
+            'Arguments JSON: {"' + f'{parameter_name}' + '": "'
         )
         result = []
         context_tokenized = agent.encode(context).tolist()[0]
-        while True:
-            current = agent.decode(result)
-            # allowed = self.mask.get_allowed_type(values, current)
-            full = context_tokenized + result
-            logits = agent.get_logits_from_input_ids(full)
-            # mask = self.mask.mask_logits(allowed, logits)
-            # r = int(mask.argmax())
-            r = logits.index(max(logits))
-            result.append(r)
-            print(current)
-            if "\n" in agent.decode(result):
-                return agent.decode(result)
+        try:
+            while True:
+                current = agent.decode(result)
+                allowed = self.mask.get_allowed_type(parameter_type, current)
+                full = context_tokenized + result
+                logits = agent.get_logits_from_input_ids(full)
+                mask = self.mask.mask_logits(allowed, logits)
+                r = int(mask.argmax())
+                result.append(r)
+                print(agent.decode(full))
+                print()
+                print(current)
+                if "}" in agent.decode(result) or "Human" in agent.decode(result):
+                    return agent.decode(result)
+        except KeyboardInterrupt:
+            exit(1)
