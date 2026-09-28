@@ -1,9 +1,9 @@
 from __future__ import annotations
 from llm_sdk import Small_LLM_Model
 from masking import Mask
+from output import GenerateJSON, Vocab, State
 import numpy as np
 import errors
-import torch
 import json
 
 
@@ -60,7 +60,7 @@ class Generator():
             context_tokenized.append(token_generated)
             result.append(token_generated)
             if agent.decode(result) in self.all_function_name:
-                return (agent.decode(result))
+                return (result)
 
     def is_valid_value_type(self, value_list: list) -> bool:
         allowed_value_type: list[str] = [
@@ -81,6 +81,40 @@ class Generator():
                 f'Invalid value type for <{function.name}>'
             )
         return parameters
+
+    def check_value(self, state, prompt):
+        if state is State.FUNCTION_NAME_VALUE:
+            return self.generate_function_name(prompt)
+
+    def build(self, prompt):
+        context = (
+            "<|im_start|>system\n"
+            "Build a json file\n"
+            "<|im_end|>\n"
+        )
+        generate = GenerateJSON()
+        result = []
+        context_tokenized = agent.encode(context).tolist()[0]
+        while generate.get_state() != State.FINISH:
+            state = generate.get_state()
+            value = generate.get_value()
+            if state is State.PROMPT_VALUE:
+                p_token = agent.encode(prompt.prompt).tolist()[0]
+                for token in p_token:
+                    result.append(token)
+            if state is State.FUNCTION_NAME_VALUE:
+                f_token = self.generate_function_name(prompt)
+                for token in f_token:
+                    result.append(token)
+            else:
+                allowed = self.mask._get_token(value)
+                logits = agent.get_logits_from_input_ids(context_tokenized)
+                mask = self.mask.mask_logits(allowed, logits)
+                token = int(mask.argmax())
+                result.append(token)
+                context_tokenized.append(token)
+            generate.next_state(generate.get_state())
+        print(agent.decode(result))
 
     def get_value(self, function, prompt, parameter_name, parameter_type) -> None:
         context = (
