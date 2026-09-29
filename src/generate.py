@@ -1,7 +1,7 @@
 from __future__ import annotations
 from llm_sdk import Small_LLM_Model
 from masking import Mask
-from output import GenerateJSON, Vocab, State
+from output import GenerateJSON, State
 import numpy as np
 import errors
 import json
@@ -32,9 +32,9 @@ class Generator():
         return np.array(allowed, dtype=np.int32)
 
     def generate_function_name(self, prompt):
-        name = ""
+        names: str = ""
         for function in self.functions.values():
-            name += f"- {function.name}: {function.description}\n"
+            names += f"- {function.name}: {function.description}\n"
         context = (
             "<|im_start|>system\n"
             "You are an AI Assistant that will help by giving\n"
@@ -43,14 +43,14 @@ class Generator():
             "We dont want any text or thinking explanation\n"
             "only the function name\n"
             "Here are the known function:\n"
-            f"{name}"
+            f"{names}"
             "<|im_end|>"
             "<|im_start|>user\n"
-            f"{prompt}<|im_end|>\n"
+            f"{prompt.prompt}<|im_end|>\n"
             "<|im_start|>assistant<|im_end|>\n"
             "<think>\n\n</think>\n\n"
         )
-        result = []
+        result: list = []
         context_tokenized = agent.encode(context).tolist()[0]
         while True:
             allowed = self.get_allowed_function(result)
@@ -86,7 +86,7 @@ class Generator():
         if state is State.FUNCTION_NAME_VALUE:
             return self.generate_function_name(prompt)
 
-    def build(self, prompt):
+    def build(self, prompt, all_functions):
         context = (
             "<|im_start|>system\n"
             "Build a json file\n"
@@ -102,8 +102,9 @@ class Generator():
                 p_token = agent.encode(prompt.prompt).tolist()[0]
                 for token in p_token:
                     result.append(token)
-            if state is State.FUNCTION_NAME_VALUE:
+            elif state is State.FUNCTION_NAME_VALUE:
                 f_token = self.generate_function_name(prompt)
+                param_left = all_functions[agent.decode(f_token)].nb_parameters
                 for token in f_token:
                     result.append(token)
             else:
@@ -113,24 +114,19 @@ class Generator():
                 token = int(mask.argmax())
                 result.append(token)
                 context_tokenized.append(token)
-            generate.next_state(generate.get_state())
-        print(agent.decode(result))
+            if state is State.PARAMETER_VALUE and param_left > 1:
+                print(param_left)
+                param_left -= 1
+                generate._actual_state = State.COMMA_AFTER_PARAMETER_VALUE
+            else:
+                generate.next_state(generate.get_state())
+            print(agent.decode(result))
 
     def get_value(self, function, prompt, parameter_name, parameter_type) -> None:
         context = (
             "<|im_start|>system\n"
-            # "Extract the RAW value from the given user's prompt.\n"
-            # "We only need the value from the given parameter's name"
-            # "Follow the function description\n"
             f'Function: {function.name} {function.description}\n'
             f'User Prompt: {prompt.prompt}\n'
-            # 'The regex must be a JSON string. Use ESCAPED BACKSLASHES when required\n'
-            # 'example: {"regex: \\d+}\n'
-            # 'Remove the parenthesis\n'
-            # 'Arguments JSON: {"' + f'{parameter_name}' + '": "'
-            # f"Function: {function.name}\n"
-            # f"Function description: {function.description}\n"
-            # "Note: regex is a raw string starting with backslash symbol\n"
             "<|im_end|>\n"
             "<|im_start|>user\n"
             f"Prompt: {prompt.prompt}\n"

@@ -13,6 +13,7 @@ class Function(BaseModel):
     name: str = Field(min_length=1)
     description: str = Field(min_length=1)
     parameters: dict[str, Any]
+    nb_parameters: int = Field(ge=1)
     returns: dict[str, str]
 
 
@@ -52,6 +53,7 @@ class Parse():
                         name=funcs["name"],
                         description=funcs["description"],
                         parameters=funcs["parameters"],
+                        nb_parameters=len(funcs["parameters"].keys()),
                         returns=funcs["returns"]
                     )
                     self.all_functions[func.name] = func
