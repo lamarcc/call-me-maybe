@@ -115,7 +115,6 @@ class Generator():
                 result.append(token)
                 context_tokenized.append(token)
             if state is State.PARAMETER_VALUE and param_left > 1:
-                print(param_left)
                 param_left -= 1
                 generate._actual_state = State.COMMA_AFTER_PARAMETER_VALUE
             else:
@@ -133,7 +132,7 @@ class Generator():
             "<|im_end|>\n"
             "<|im_start|>assistant\n"
             "<think>\n\n</think>\n\n"
-            'Arguments JSON: {"' + f'{parameter_name}' + '": "'
+            'Arguments JSON: {"' + f'{parameter_name}": "'
         )
         result = []
         context_tokenized = agent.encode(context).tolist()[0]
@@ -146,10 +145,8 @@ class Generator():
                 mask = self.mask.mask_logits(allowed, logits)
                 r = int(mask.argmax())
                 result.append(r)
-                print(agent.decode(full))
-                print()
-                print(current)
-                if "}" in agent.decode(result) or "Human" in agent.decode(result):
+                print(agent.decode(result))
+                if '"' in agent.decode(result) or "Human" in agent.decode(result):
                     return agent.decode(result)
         except KeyboardInterrupt:
             exit(1)

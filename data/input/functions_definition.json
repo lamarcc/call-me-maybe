@@ -67,5 +67,17 @@
     "returns": {
       "type": "string"
     }
+  },
+  {
+    "name": "fn_toggle_flag",
+    "description": "Invert the state of a boolean flag and return the new value.",
+    "parameters": {
+      "flag": {
+        "type": "boolean"
+      }
+    },
+    "returns": {
+      "type": "boolean"
+    }
   }
 ]

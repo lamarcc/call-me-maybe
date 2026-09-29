@@ -35,6 +35,8 @@ class State(Enum):
     QUOTE_AFTER_PARAM_KEY = auto()
     QUOTE_BEFORE_PARAM_NAME = auto()
     QUOTE_AFTER_PARAM_NAME = auto()
+    QUOTE_BEFORE_PARAM_VALUE = auto()
+    QUOTE_AFTER_PARAM_VALUE = auto()
     PROMPT_VALUE = auto()
     FUNCTION_NAME_VALUE = auto()
     PARAMETER_NAME = auto()
@@ -73,8 +75,10 @@ class GenerateJSON():
             State.QUOTE_BEFORE_PARAM_NAME: State.PARAMETER_NAME,
             State.PARAMETER_NAME: State.QUOTE_AFTER_PARAM_NAME,
             State.QUOTE_AFTER_PARAM_NAME: State.COLON_AFTER_PARAMETER_NAME,
-            State.COLON_AFTER_PARAMETER_NAME: State.PARAMETER_VALUE,
-            State.PARAMETER_VALUE: State.CLOSE_PARAMETER,
+            State.COLON_AFTER_PARAMETER_NAME: State.QUOTE_BEFORE_PARAM_VALUE,
+            State.QUOTE_BEFORE_PARAM_VALUE: State.PARAMETER_VALUE,
+            State.PARAMETER_VALUE: State.QUOTE_AFTER_PARAM_VALUE,
+            State.QUOTE_AFTER_PARAM_VALUE: State.CLOSE_PARAMETER,
             State.CLOSE_PARAMETER: State.CLOSE_END,
             State.CLOSE_END: State.FINISH,
             State.FINISH: None,
@@ -105,6 +109,8 @@ class GenerateJSON():
             State.QUOTE_AFTER_PARAM_KEY: Vocab.QUOTE,
             State.QUOTE_BEFORE_PARAM_NAME: Vocab.QUOTE,
             State.QUOTE_AFTER_PARAM_NAME: Vocab.QUOTE,
+            State.QUOTE_BEFORE_PARAM_VALUE: Vocab.QUOTE,
+            State.QUOTE_AFTER_PARAM_VALUE: Vocab.QUOTE,
             State.PROMPT_VALUE: "None",
             State.FUNCTION_NAME_VALUE: "None",
             State.PARAMETER_NAME: "None",

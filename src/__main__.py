@@ -1,4 +1,4 @@
-# from llm_sdk import Small_LLM_Model
+from llm_sdk import Small_LLM_Model
 import parsing
 import generate
 from sys import argv
@@ -18,11 +18,12 @@ if __name__ == "__main__":
     test = parsing.Parse(f_path, p_path)
     test.prompt()
     test.function()
+    agent = Small_LLM_Model()
     gener = generate.Generator(test.all_functions, test.all_prompts)
     for prompt in test.all_prompts:
-        gener.build(prompt, test.all_functions)
-    #     f = test.all_functions[gener.generate_function_name(prompt)]
-    #     print(f.name)
-    #     p = gener.extract_param_value(f, prompt)
-    #     for name, type in p.items():
-    #         print(gener.get_value(f, prompt, name, type))
+        # gener.build(prompt, test.all_functions)
+        f = test.all_functions[agent.decode(gener.generate_function_name(prompt))]
+        print(f.name)
+        p = gener.extract_param_value(f, prompt)
+        for name, type in p.items():
+            print(gener.get_value(f, prompt, name, type))
