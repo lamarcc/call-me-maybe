@@ -1,21 +1,6 @@
 [
   {
-    "prompt": "Invert true"
-  },
-  {
-    "prompt": "Greet john"
-  },
-  {
-    "prompt": "Replace all numbers in \"Hello 34 I'm 233 years old\" with NUMBERS"
-  },
-  {
-    "prompt": "Replace all vowels in 'Programming is fun' with asterisks"
-  },
-  {
-    "prompt": "Substitute the word 'cat' with 'dog' in 'The cat sat on the mat with another cat'"
-  },
-  {
-    "prompt": "What is the sum of -265 and 345?"
+    "prompt": "What is the sum of 265.87 and 345?"
   },
   {
     "prompt": "Greet shrek"
@@ -28,6 +13,9 @@
   },
   {
     "prompt": "Reverse the string 'world'"
+  },
+  {
+    "prompt": "Invert true"
   },
   {
     "prompt": "What is the square root of 16?"

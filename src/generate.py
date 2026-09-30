@@ -94,6 +94,7 @@ class Generator():
         )
         generate = GenerateJSON()
         result = []
+        function = self.functions[agent.decode(self.generate_function_name(prompt))]
         context_tokenized = agent.encode(context).tolist()[0]
         while generate.get_state() != State.FINISH:
             state = generate.get_state()
@@ -103,9 +104,14 @@ class Generator():
                 for token in p_token:
                     result.append(token)
             elif state is State.FUNCTION_NAME_VALUE:
-                f_token = self.generate_function_name(prompt)
-                param_left = all_functions[agent.decode(f_token)].nb_parameters
+                f_token = agent.encode(function.name).tolist()[0]
+                param_left = function.nb_parameters
+                parameter_name_list = [name for name in iter(self.extract_param_value(function, prompt))]
                 for token in f_token:
+                    result.append(token)
+            elif state is State.PARAMETER_NAME:
+                param_token = agent.encode(parameter_name_list[function.nb_parameters - param_left]).tolist()[0]
+                for token in param_token:
                     result.append(token)
             else:
                 allowed = self.mask._get_token(value)
@@ -114,7 +120,7 @@ class Generator():
                 token = int(mask.argmax())
                 result.append(token)
                 context_tokenized.append(token)
-            if state is State.PARAMETER_VALUE and param_left > 1:
+            if state is State.QUOTE_AFTER_PARAM_VALUE and param_left > 1:
                 param_left -= 1
                 generate._actual_state = State.COMMA_AFTER_PARAMETER_VALUE
             else:

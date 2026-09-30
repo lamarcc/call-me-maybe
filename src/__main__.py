@@ -1,28 +1,28 @@
 from llm_sdk import Small_LLM_Model
 import parsing
 import generate
-from sys import argv
+import argparse
 
+parse = argparse.ArgumentParser()
+parse.add_argument("--function_definition", type=str)
+parse.add_argument("--input", type=str)
+parse.add_argument("--output", type=str)
+
+args = parse.parse_args()
 
 if __name__ == "__main__":
-    f_path = ""
-    p_path = ""
-    output_path = ""
-    if argv[1:]:
-        if "--functions_definition" in argv:
-            f_path = argv[argv.find("--functions_definition") + 1]
-        if "--input" in argv:
-            p_path = argv[argv.find("--functions_definition") + 1]
-        if "--output" in argv:
-            output_path = argv[argv.find("--functions_definition") + 1]
-    test = parsing.Parse(f_path, p_path)
-    test.prompt()
-    test.function()
+    f_path = args.function_definition
+    p_path = args.input
+    o_path = args.output
+    print(args.function_definition)
+    data = parsing.Parse(f_path, p_path)
+    data.prompt()
+    data.function()
     agent = Small_LLM_Model()
-    gener = generate.Generator(test.all_functions, test.all_prompts)
-    for prompt in test.all_prompts:
-        # gener.build(prompt, test.all_functions)
-        f = test.all_functions[agent.decode(gener.generate_function_name(prompt))]
+    gener = generate.Generator(data.all_functions, data.all_prompts)
+    for prompt in data.all_prompts:
+        # gener.build(prompt, data.all_functions)
+        f = data.all_functions[agent.decode(gener.generate_function_name(prompt))]
         print(f.name)
         p = gener.extract_param_value(f, prompt)
         for name, type in p.items():

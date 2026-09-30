@@ -18,6 +18,7 @@ class Mask():
         allowed_token = set()
         for c in allowed:
             allowed_token.update(self._get_token(c).tolist())
+        print(allowed)
         return np.array(list(allowed_token), dtype=np.int32)
 
     def get_float(self, value) -> np.ndarray:
