@@ -4,7 +4,6 @@ from masking import Mask
 from output import GenerateJSON, State
 import numpy as np
 import errors
-import json
 
 
 agent = Small_LLM_Model()
@@ -31,7 +30,7 @@ class Generator():
                     allowed.append(encoded[len(already_generated)])
         return np.array(allowed, dtype=np.int32)
 
-    def generate_function_name(self, prompt):
+    def generate_function_name(self, prompt, max_tokens: int = 20):
         names: str = ""
         for function in self.functions.values():
             names += f"- {function.name}: {function.description}\n"
@@ -52,15 +51,21 @@ class Generator():
         )
         result: list = []
         context_tokenized = agent.encode(context).tolist()[0]
-        while True:
+        while len(result) < max_tokens:
             allowed = self.get_allowed_function(result)
+            if len(allowed) == 0:
+                break
             logits = agent.get_logits_from_input_ids(context_tokenized)
             mask = self.mask.mask_logits(allowed, logits)
             token_generated = int(mask.argmax())
             context_tokenized.append(token_generated)
             result.append(token_generated)
-            if agent.decode(result) in self.all_function_name:
+            decoded = agent.decode(result)
+            if decoded in self.all_function_name:
                 return (result)
+            if "<|im_end|>" in decoded or "<|endoftext|>" in decoded:
+                break
+        return result
 
     def is_valid_value_type(self, value_list: list) -> bool:
         allowed_value_type: list[str] = [
@@ -76,6 +81,7 @@ class Generator():
         value_type = []
         for p_name, p_type in function.parameters.items():
             parameters[p_name] = p_type["type"]
+            value_type.append(p_type["type"])
         if not self.is_valid_value_type(value_type):
             raise errors.InvalidParameterValue(
                 f'Invalid value type for <{function.name}>'
@@ -127,7 +133,15 @@ class Generator():
                 generate.next_state(generate.get_state())
             print(agent.decode(result))
 
-    def get_value(self, function, prompt, parameter_name, parameter_type) -> None:
+    def get_value(self, function, prompt, parameter_name, parameter_type, max_tokens: int = 50, already_extracted: dict | None = None) -> str:
+        args_prefix = ""
+        if already_extracted:
+            args_prefix = ", ".join(
+                f'"{k}": "{v}"' for k, v in already_extracted.items()
+            )
+            if args_prefix:
+                args_prefix += ", "
+
         context = (
             "<|im_start|>system\n"
             f'Function: {function.name} {function.description}\n'
@@ -138,12 +152,12 @@ class Generator():
             "<|im_end|>\n"
             "<|im_start|>assistant\n"
             "<think>\n\n</think>\n\n"
-            'Arguments JSON: {"' + f'{parameter_name}": "'
+            f'Arguments JSON: {{{args_prefix}"{parameter_name}": "'
         )
-        result = []
+        result: list = []
         context_tokenized = agent.encode(context).tolist()[0]
         try:
-            while True:
+            for _ in range(max_tokens):
                 current = agent.decode(result)
                 allowed = self.mask.get_allowed_type(parameter_type, current)
                 full = context_tokenized + result
@@ -151,8 +165,11 @@ class Generator():
                 mask = self.mask.mask_logits(allowed, logits)
                 r = int(mask.argmax())
                 result.append(r)
-                print(agent.decode(result))
-                if '"' in agent.decode(result) or "Human" in agent.decode(result):
-                    return agent.decode(result)
+                current_decoded = agent.decode(result)
+                if ('"' in current_decoded):
+                    break
+            if '"' in current_decoded:
+                current_decoded = current_decoded.split('"')[0]
+            return current_decoded.strip('",} \n\r\t')
         except KeyboardInterrupt:
             exit(1)

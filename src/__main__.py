@@ -25,5 +25,8 @@ if __name__ == "__main__":
         f = data.all_functions[agent.decode(gener.generate_function_name(prompt))]
         print(f.name)
         p = gener.extract_param_value(f, prompt)
+        extracted = {}
         for name, type in p.items():
-            print(gener.get_value(f, prompt, name, type))
+            val = gener.get_value(f, prompt, name, type, already_extracted=extracted)
+            extracted[name] = val
+            print(val)
