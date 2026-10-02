@@ -5,40 +5,34 @@ import argparse
 import errors
 import sys
 
-parse = argparse.ArgumentParser()
-parse.add_argument("--function_definition", type=str)
-parse.add_argument("--input", type=str)
-parse.add_argument("--output", type=str)
 
-args = parse.parse_args()
+def parse_args() -> argparse.Namespace:
+    parse = argparse.ArgumentParser()
+    parse.add_argument("--function_definition", type=str)
+    parse.add_argument("--input", type=str)
+    parse.add_argument("--output", type=str)
+    return parse.parse_args()
 
-if __name__ == "__main__":
-    f_path = args.function_definition
-    p_path = args.input
-    o_path = args.output
+
+def main() -> int:
+    args = parse_args()
     try:
-        data = parsing.Parse(f_path, p_path)
+        data = parsing.Parse(args.function_definition, args.input)
         data.prompt()
         data.function()
     except errors.ParsingError as e:
         print(e)
-        sys.exit(1)
+        return 1
     agent = Small_LLM_Model()
-    gener = generate.Generator(data.all_functions, data.all_prompts)
+    gener = generate.Generator(agent, data.all_functions)
     for prompt in data.all_prompts:
-        # gener.build(prompt, data.all_functions)
         try:
-            f = data.all_functions[
-                agent.decode(gener.generate_function_name(prompt))
-            ]
-            print(f.name)
-            p = gener.extract_param_value(f, prompt)
-            extracted = {}
-            for name, type in p.items():
-                val = gener.get_value(
-                    f, prompt, name, type, already_extracted=extracted
-                )
-                extracted[name] = val
-                print(val)
+            a = gener.build(prompt.prompt, data.all_functions)
+            print(a)
         except errors.GenerationError as e:
             print(f'{e} (prompt: "{prompt.prompt}")')
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

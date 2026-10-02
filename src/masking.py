@@ -7,16 +7,16 @@ class Mask():
         closers = ['"', '",', '"}', '"\n', '",\n', '}\n', '}', ',']
         tokens = set()
         for c in closers:
-            tokens.update(self._get_token(c).tolist())
+            tokens.update(self.get_token(c))
         self.closing_tokens: np.ndarray = np.array(list(tokens), dtype=np.int32)
 
-    def _get_token(self, text: str) -> np.ndarray:
+    def get_token(self, text: str) -> np.ndarray:
         token = self.agent.encode(text).tolist()
         if isinstance(token[0], list):
             token = token[0]
         return np.array(token, dtype=np.int32)
 
-    def get_int(self, value: str) -> np.ndarray:
+    def _get_int(self, value: str) -> np.ndarray:
         allowed = list('0123456789')
         number = value.strip()
         if value == "":
@@ -25,12 +25,12 @@ class Mask():
             allowed.extend(["-", " -"])
         allowed_token = set()
         for c in allowed:
-            allowed_token.update(self._get_token(c).tolist())
+            allowed_token.update(self.get_token(c))
         if number not in ["", "-"]:
             allowed_token.update(self.closing_tokens.tolist())
         return np.array(list(allowed_token), dtype=np.int32)
 
-    def get_float(self, value: str) -> np.ndarray:
+    def _get_float(self, value: str) -> np.ndarray:
         allowed = list('0123456789')
         number = value.strip()
         if "." not in number and number not in ["", "-"]:
@@ -41,25 +41,25 @@ class Mask():
             allowed.extend(["-", " -"])
         allowed_token = set()
         for c in allowed:
-            allowed_token.update(self._get_token(c).tolist())
+            allowed_token.update(self.get_token(c))
         if number not in ["", "-"] and not number.endswith("."):
             allowed_token.update(self.closing_tokens.tolist())
         return np.array(list(allowed_token), dtype=np.int32)
 
-    def get_boolean(self, value: str = "") -> np.ndarray:
+    def _get_boolean(self, value: str = "") -> np.ndarray:
         allowed = set()
         for word in ["true", "false"]:
-            allowed.update(self._get_token(word).tolist())
+            allowed.update(self.get_token(word))
         allowed.update(self.closing_tokens.tolist())
         return np.array(list(allowed), dtype=np.int32)
 
-    def get_allowed_type(self, value_type: str, value: str) -> np.ndarray:
+    def _get_allowed_type(self, value_type: str, value: str) -> np.ndarray:
         if value_type == "integer":
-            return self.get_int(value)
+            return self._get_int(value)
         if value_type == "float" or value_type == "number":
-            return self.get_float(value)
+            return self._get_float(value)
         if value_type == "boolean":
-            return self.get_boolean(value)
+            return self._get_boolean(value)
         if value_type == "string":
             return None
         raise ValueError(f"Unknown type: {value_type}")
