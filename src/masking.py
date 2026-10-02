@@ -18,25 +18,31 @@ class Mask():
 
     def get_int(self, value: str) -> np.ndarray:
         allowed = list('0123456789')
+        number = value.strip()
         if value == "":
+            allowed.append(" ")
+        if number == "":
             allowed.extend(["-", " -"])
         allowed_token = set()
         for c in allowed:
             allowed_token.update(self._get_token(c).tolist())
-        if value != "" and value not in ["-", " -"]:
+        if number not in ["", "-"]:
             allowed_token.update(self.closing_tokens.tolist())
         return np.array(list(allowed_token), dtype=np.int32)
 
     def get_float(self, value: str) -> np.ndarray:
         allowed = list('0123456789')
-        if "." not in value and value != "" and value not in ["-", " -"]:
+        number = value.strip()
+        if "." not in number and number not in ["", "-"]:
             allowed.append(".")
         if value == "":
+            allowed.append(" ")
+        if number == "":
             allowed.extend(["-", " -"])
         allowed_token = set()
         for c in allowed:
             allowed_token.update(self._get_token(c).tolist())
-        if (value != "" and value not in ["-", " -"] and not value.endswith(".")):
+        if number not in ["", "-"] and not number.endswith("."):
             allowed_token.update(self.closing_tokens.tolist())
         return np.array(list(allowed_token), dtype=np.int32)
 

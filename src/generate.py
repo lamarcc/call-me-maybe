@@ -19,18 +19,24 @@ class Generator():
         self.all_function_name: list = [
             function.name for function in self.functions.values()
         ]
+        self.encoded_names: list[list[int]] = [
+            agent.encode(name).tolist()[0] for name in self.all_function_name
+        ]
+        self.end_token: int = agent.encode("<|im_end|>").tolist()[0][0]
 
     def get_allowed_function(self, already_generated):
-        allowed_tokens = self.all_function_name
-        allowed = []
-        for name in allowed_tokens:
-            encoded = agent.encode(name).tolist()[0]
-            if already_generated == encoded[:len(already_generated)]:
-                if len(already_generated) < len(encoded):
-                    allowed.append(encoded[len(already_generated)])
-        return np.array(allowed, dtype=np.int32)
+        allowed = set()
+        size = len(already_generated)
+        for encoded in self.encoded_names:
+            if encoded[:size] != already_generated:
+                continue
+            if size < len(encoded):
+                allowed.add(encoded[size])
+            else:
+                allowed.add(self.end_token)
+        return np.array(list(allowed), dtype=np.int32)
 
-    def generate_function_name(self, prompt, max_tokens: int = 20):
+    def generate_function_name(self, prompt):
         names: str = ""
         for function in self.functions.values():
             names += f"- {function.name}: {function.description}\n"
@@ -51,42 +57,45 @@ class Generator():
         )
         result: list = []
         context_tokenized = agent.encode(context).tolist()[0]
-        while len(result) < max_tokens:
+        while True:
             allowed = self.get_allowed_function(result)
             if len(allowed) == 0:
                 break
-            logits = agent.get_logits_from_input_ids(context_tokenized)
-            mask = self.mask.mask_logits(allowed, logits)
-            token_generated = int(mask.argmax())
+            if len(allowed) == 1:
+                token_generated = int(allowed[0])
+            else:
+                logits = agent.get_logits_from_input_ids(context_tokenized)
+                mask = self.mask.mask_logits(allowed, logits)
+                token_generated = int(mask.argmax())
+            if token_generated == self.end_token:
+                return result
             context_tokenized.append(token_generated)
             result.append(token_generated)
-            decoded = agent.decode(result)
-            if decoded in self.all_function_name:
-                return (result)
-            if "<|im_end|>" in decoded or "<|endoftext|>" in decoded:
-                break
-        return result
-
-    def is_valid_value_type(self, value_list: list) -> bool:
-        allowed_value_type: list[str] = [
-            "number", "integer", "float", "string", "boolean"
-        ]
-        for verif in value_list:
-            if verif not in allowed_value_type:
-                return False
-        return True
+        raise errors.FunctionNotFound(
+            'No known function matches '
+            f'(generated: "{agent.decode(result)}")'
+        )
 
     def extract_param_value(self, function, prompt):
-        parameters = {}
-        value_type = []
-        for p_name, p_type in function.parameters.items():
-            parameters[p_name] = p_type["type"]
-            value_type.append(p_type["type"])
-        if not self.is_valid_value_type(value_type):
-            raise errors.InvalidParameterValue(
-                f'Invalid value type for <{function.name}>'
+        return {
+            p_name: p_type["type"]
+            for p_name, p_type in function.parameters.items()
+        }
+
+    def check_generated_value(self, value: str, parameter_name: str,
+                              parameter_type: str) -> None:
+        try:
+            if parameter_type == "integer":
+                int(value)
+            elif parameter_type in ("float", "number"):
+                float(value)
+            elif parameter_type == "boolean" and value not in ("true", "false"):
+                raise ValueError
+        except ValueError:
+            raise errors.InvalidGeneratedValue(
+                f'"{value}" is not a valid {parameter_type} '
+                f'for parameter <{parameter_name}>'
             )
-        return parameters
 
     def check_value(self, state, prompt):
         if state is State.FUNCTION_NAME_VALUE:
@@ -152,8 +161,13 @@ class Generator():
             "<|im_end|>\n"
             "<|im_start|>assistant\n"
             "<think>\n\n</think>\n\n"
-            f'Arguments JSON: {{{args_prefix}"{parameter_name}": "'
+            f'Arguments JSON: {{{args_prefix}"{parameter_name}":'
         )
+        numeric = parameter_type in ("integer", "float", "number")
+        stop_chars = '",}\n' if numeric else '"'
+        if not numeric:
+            context += ' "'
+
         result: list = []
         context_tokenized = agent.encode(context).tolist()[0]
         try:
@@ -166,10 +180,17 @@ class Generator():
                 r = int(mask.argmax())
                 result.append(r)
                 current_decoded = agent.decode(result)
-                if ('"' in current_decoded):
+                if any(c in current_decoded for c in stop_chars):
                     break
-            if '"' in current_decoded:
-                current_decoded = current_decoded.split('"')[0]
-            return current_decoded.strip('",} \n\r\t')
+            else:
+                raise errors.InvalidGeneratedValue(
+                    f'Parameter <{parameter_name}> not closed after '
+                    f'{max_tokens} tokens'
+                )
+            for c in stop_chars:
+                current_decoded = current_decoded.split(c)[0]
+            value = current_decoded.strip('",} \n\r\t')
+            self.check_generated_value(value, parameter_name, parameter_type)
+            return value
         except KeyboardInterrupt:
             exit(1)

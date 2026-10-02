@@ -33,8 +33,12 @@ if __name__ == "__main__":
             ]
             print(f.name)
             p = gener.extract_param_value(f, prompt)
+            extracted = {}
             for name, type in p.items():
-                val = gener.get_value(f, prompt, name, type)
+                val = gener.get_value(
+                    f, prompt, name, type, already_extracted=extracted
+                )
+                extracted[name] = val
                 print(val)
         except errors.GenerationError as e:
             print(f'{e} (prompt: "{prompt.prompt}")')
