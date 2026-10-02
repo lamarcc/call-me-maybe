@@ -1,8 +1,6 @@
-from typing import Any
-
-
 class Colors():
     """ANSI codes for coloring and formatting console output."""
+
     HEADER: str = '\033[95m'
     OKBLUE: str = '\033[94m'
     OKCYAN: str = '\033[96m'
@@ -14,63 +12,95 @@ class Colors():
     UNDERLINE: str = '\033[4m'
 
 
-class ParsingError(Exception):
-    def __init__(self, type_name: str) -> None:
-        self.bold: str = Colors.BOLD
-        self.warning: str = Colors.WARNING
-        self.fail: str = Colors.FAIL
-        self.end: str = Colors.ENDC
-        self.name: str = type_name
+class ProgramError(Exception):
+    """Base class of every custom error of the program.
 
-    def __str__(self) -> Any:
-        color_start = self.bold + self.fail
-        color_end = self.end + self.bold
-        return color_start + f'{self.name}' + color_end + ":"
+    Subclasses only override the class attribute `name`, which is the
+    label printed before the message.
+
+    Attributes:
+    name -- label of the error, read from the most derived class
+    message -- explanation of what went wrong
+    """
+
+    name: str = "CallError"
+
+    def __init__(self, message: str) -> None:
+        """Store the message that explains the error."""
+        super().__init__(message)
+        self.message: str = message
+
+    def __str__(self) -> str:
+        """Return '<name>: <message>' with ANSI colors."""
+        color_start = Colors.BOLD + Colors.FAIL
+        color_end = Colors.ENDC + Colors.BOLD
+        return (
+            color_start + self.name + color_end + ": "
+            + self.message + Colors.ENDC
+        )
+
+
+class ParsingError(ProgramError):
+    """Base class of errors that make an input file unusable.
+
+    The program cannot run at all and exits with status 1.
+    """
+
+    name = "ParsingError"
 
 
 class InvalidJSON(ParsingError):
+    """Raise when a file is not valid JSON or is not a JSON list."""
+
     name = "InvalidJSON"
-
-    def __init__(self, message: str) -> None:
-        self.message = message
-        super().__init__(InvalidJSON.name)
-
-    def __str__(self) -> Any:
-        error = super().__str__()
-        return error + f' {self.message}'
 
 
 class NoPermissionErr(ParsingError):
+    """Raise when an input file cannot be read because of permissions."""
+
     name = "PermissionError"
-
-    def __init__(self, message: str) -> None:
-        self.message = message
-        super().__init__(NoPermissionErr.name)
-
-    def __str__(self) -> Any:
-        error = super().__str__()
-        return error + self.message
 
 
 class FileNotFoundErr(ParsingError):
-    name = "PermissionError"
+    """Raise when an input path does not exist or is a directory."""
 
-    def __init__(self, message: str) -> None:
-        self.message = message
-        super().__init__(FileNotFoundErr.name)
+    name = "FileNotFoundError"
 
-    def __str__(self) -> Any:
-        error = super().__str__()
-        return error + self.message
+
+class InvalidFunctionDefinition(ParsingError):
+    """Raise when a function definition is missing or malformed."""
+
+    name = "InvalidFunctionDefinition"
+
+
+class InvalidPrompt(ParsingError):
+    """Raise when a prompt entry has no non-empty "prompt" string."""
+
+    name = "InvalidPrompt"
 
 
 class InvalidParameterValue(ParsingError):
+    """Raise when a parameter has a missing or unsupported type."""
+
     name = "InvalidParameterValue"
 
-    def __init__(self, message: str) -> None:
-        self.message = message
-        super().__init__(InvalidParameterValue.name)
 
-    def __str__(self) -> Any:
-        error = super().__str__()
-        return error + self.message
+class GenerationError(ProgramError):
+    """Base class of errors raised while generating one prompt.
+
+    Only the current prompt fails; the other prompts still run.
+    """
+
+    name = "GenerationError"
+
+
+class FunctionNotFound(GenerationError):
+    """Raise when the model does not produce a known function name."""
+
+    name = "FunctionNotFound"
+
+
+class InvalidGeneratedValue(GenerationError):
+    """Raise when a generated value is unclosed or has the wrong type."""
+
+    name = "InvalidGeneratedValue"
