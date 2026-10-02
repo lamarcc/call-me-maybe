@@ -39,6 +39,15 @@ class ProgramError(Exception):
             + self.message + Colors.ENDC
         )
 
+    def message(self, message) -> str:
+        """Return a message with ANSI colors."""
+        color_start = Colors.BOLD + Colors.WARNING
+        color_end = Colors.ENDC + Colors.BOLD
+        new_line = '\n'
+        return (
+            color_start + new_line + message + color_end + Colors.ENDC
+        )
+
 
 class ParsingError(ProgramError):
     """Base class of errors that make an input file unusable.

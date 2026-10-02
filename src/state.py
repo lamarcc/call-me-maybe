@@ -31,12 +31,10 @@ class State(Enum):
     QUOTE_AFTER_FKEY = auto()
     QUOTE_BEFORE_FVALUE = auto()
     QUOTE_AFTER_FVALUE = auto()
-    QUOTE_BEFORE_PARAM_KEY = auto()
-    QUOTE_AFTER_PARAM_KEY = auto()
+    QUOTE_BEFORE_PAKEY = auto()
+    QUOTE_AFTER_PAKEY = auto()
     QUOTE_BEFORE_PARAM_NAME = auto()
     QUOTE_AFTER_PARAM_NAME = auto()
-    QUOTE_BEFORE_PARAM_VALUE = auto()
-    QUOTE_AFTER_PARAM_VALUE = auto()
     PROMPT_VALUE = auto()
     FUNCTION_NAME_VALUE = auto()
     PARAMETER_NAME = auto()
@@ -66,19 +64,17 @@ class GenerateJSON():
             State.QUOTE_BEFORE_FVALUE: State.FUNCTION_NAME_VALUE,
             State.FUNCTION_NAME_VALUE: State.QUOTE_AFTER_FVALUE,
             State.QUOTE_AFTER_FVALUE: State.COMMA_AFTER_FUNCTION_NAME_VALUE,
-            State.COMMA_AFTER_FUNCTION_NAME_VALUE: State.QUOTE_BEFORE_PARAM_KEY,
-            State.QUOTE_BEFORE_PARAM_KEY: State.PARAMETER_KEY,
-            State.PARAMETER_KEY: State.QUOTE_AFTER_PARAM_KEY,
-            State.QUOTE_AFTER_PARAM_KEY: State.COLON_AFTER_PARAMETER_KEY,
+            State.COMMA_AFTER_FUNCTION_NAME_VALUE: State.QUOTE_BEFORE_PAKEY,
+            State.QUOTE_BEFORE_PAKEY: State.PARAMETER_KEY,
+            State.PARAMETER_KEY: State.QUOTE_AFTER_PAKEY,
+            State.QUOTE_AFTER_PAKEY: State.COLON_AFTER_PARAMETER_KEY,
             State.COLON_AFTER_PARAMETER_KEY: State.OPEN_PARAMETER,
             State.OPEN_PARAMETER: State.QUOTE_BEFORE_PARAM_NAME,
             State.QUOTE_BEFORE_PARAM_NAME: State.PARAMETER_NAME,
             State.PARAMETER_NAME: State.QUOTE_AFTER_PARAM_NAME,
             State.QUOTE_AFTER_PARAM_NAME: State.COLON_AFTER_PARAMETER_NAME,
-            State.COLON_AFTER_PARAMETER_NAME: State.QUOTE_BEFORE_PARAM_VALUE,
-            State.QUOTE_BEFORE_PARAM_VALUE: State.PARAMETER_VALUE,
-            State.PARAMETER_VALUE: State.QUOTE_AFTER_PARAM_VALUE,
-            State.QUOTE_AFTER_PARAM_VALUE: State.CLOSE_PARAMETER,
+            State.COLON_AFTER_PARAMETER_NAME: State.PARAMETER_VALUE,
+            State.PARAMETER_VALUE: State.CLOSE_PARAMETER,
             State.CLOSE_PARAMETER: State.CLOSE_END,
             State.CLOSE_END: State.FINISH,
             State.FINISH: None,
@@ -105,12 +101,10 @@ class GenerateJSON():
             State.QUOTE_AFTER_FKEY: Vocab.QUOTE,
             State.QUOTE_BEFORE_FVALUE: Vocab.QUOTE,
             State.QUOTE_AFTER_FVALUE: Vocab.QUOTE,
-            State.QUOTE_BEFORE_PARAM_KEY: Vocab.QUOTE,
-            State.QUOTE_AFTER_PARAM_KEY: Vocab.QUOTE,
+            State.QUOTE_BEFORE_PAKEY: Vocab.QUOTE,
+            State.QUOTE_AFTER_PAKEY: Vocab.QUOTE,
             State.QUOTE_BEFORE_PARAM_NAME: Vocab.QUOTE,
             State.QUOTE_AFTER_PARAM_NAME: Vocab.QUOTE,
-            State.QUOTE_BEFORE_PARAM_VALUE: Vocab.QUOTE,
-            State.QUOTE_AFTER_PARAM_VALUE: Vocab.QUOTE,
             State.PROMPT_VALUE: "None",
             State.FUNCTION_NAME_VALUE: "None",
             State.PARAMETER_NAME: "None",

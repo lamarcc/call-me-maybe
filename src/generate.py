@@ -1,8 +1,9 @@
 from __future__ import annotations
 from masking import Mask
-from output import GenerateJSON, State
+from state import GenerateJSON, State
 import numpy as np
 import errors
+import json
 
 
 class Generator():
@@ -112,7 +113,6 @@ class Generator():
             prompt,
             parameter_name,
             parameter_type,
-            max_tokens: int = 50,
             already_extracted: dict | None = None
     ) -> str:
         args_prefix = ""
@@ -138,8 +138,9 @@ class Generator():
         stop_chars = '",}\n' if numeric else '"'
         if not numeric:
             context += ' "'
-        result: list = []
+        result = []
         context_tokenized = self._encode_string(context)
+        max_tokens = 50
         for _ in range(max_tokens):
             current = self._decode_string(result)
             allowed = self.mask._get_allowed_type(parameter_type, current)
@@ -175,8 +176,9 @@ class Generator():
             self._generate_function_name(prompt)
         )]
         extracted = {}
-        value_list = []
         param_list = []
+        type_list = []
+        value_list = []
         params = self._extract_param_value(function, prompt)
         for p_name, p_type in params.items():
             value = self._get_value(
@@ -187,14 +189,15 @@ class Generator():
                 already_extracted=extracted
             )
             extracted[p_name] = value
-            param_list.append(self._encode_string(p_name))
-            value_list.append(self._encode_string(str(value)))
+            param_list.append(p_name)
+            type_list.append(p_type)
+            value_list.append(str(value))
         context_tokenized = self._encode_string(context)
         while generate.get_state() != State.FINISH:
             state = generate.get_state()
             state_value = generate.get_value()
             if state is State.PROMPT_VALUE:
-                p_token = self._encode_string(prompt)
+                p_token = self._encode_string(json.dumps(prompt)[1:-1])
                 for token in p_token:
                     result.append(token)
             elif state is State.FUNCTION_NAME_VALUE:
@@ -203,27 +206,27 @@ class Generator():
                 for token in f_token:
                     result.append(token)
             elif state is State.PARAMETER_NAME:
-                param_token = param_list[0]
+                param_token = self._encode_string(param_list[0])
                 param_list.pop(0)
                 for token in param_token:
                     result.append(token)
             elif state is State.PARAMETER_VALUE:
-                value_token = value_list[0]
+                value_token = self._encode_string(value_list[0])
                 value_list.pop(0)
+                if type_list[0] == "string" or type_list[0] == "boolean":
+                    value_token.insert(0, 1)
+                    value_token.append(1)
+                type_list.pop(0)
                 for token in value_token:
                     result.append(token)
             else:
                 allowed = self.mask.get_token(state_value)
-                logits = self.agent.get_logits_from_input_ids(
-                    context_tokenized
-                )
-                mask = self.mask.mask_logits(allowed, logits)
-                token = int(mask.argmax())
+                token = self._next_token(context_tokenized, allowed)
                 result.append(token)
                 context_tokenized.append(token)
-            if state is State.QUOTE_AFTER_PARAM_VALUE and param_left > 1:
+            if state is State.PARAMETER_VALUE and param_left > 1:
                 param_left -= 1
                 generate._actual_state = State.COMMA_AFTER_PARAMETER_VALUE
             else:
                 generate.next_state(generate.get_state())
-        return self._decode_string(result)
+        return json.loads(self._decode_string(result))

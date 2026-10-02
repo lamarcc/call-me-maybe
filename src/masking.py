@@ -8,7 +8,9 @@ class Mask():
         tokens = set()
         for c in closers:
             tokens.update(self.get_token(c))
-        self.closing_tokens: np.ndarray = np.array(list(tokens), dtype=np.int32)
+        self.closing_tokens: np.ndarray = np.array(
+            list(tokens), dtype=np.int32
+        )
 
     def get_token(self, text: str) -> np.ndarray:
         token = self.agent.encode(text).tolist()
