@@ -21,7 +21,8 @@ class Prompt(BaseModel):
 class Function(BaseModel):
     """One callable function, read from the function definitions file.
 
-    Represents a callable function with its metadata and parameter specifications.
+    Represents a callable function with its metadata and
+    parameter specifications.
 
     Attributes:
         name: Unique name the model must generate when this function is needed.
@@ -129,7 +130,8 @@ class Parse():
 
         Raises:
             InvalidFunctionDefinition: If an entry is malformed, a name is
-                                      defined twice, or the file has no functions.
+                                       defined twice, or the file has
+                                       no functions.
             InvalidParameterValue: If a parameter type is not in ALLOWED_TYPES.
         """
         for i, funcs in enumerate(self._load_json(self.function_path)):

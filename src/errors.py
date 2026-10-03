@@ -42,7 +42,8 @@ class ProgramError(Exception):
             + self.message + Colors.ENDC
         )
 
-    def msg(self, message: str) -> str:
+    @staticmethod
+    def msg(message: str) -> str:
         """Return a message with ANSI colors."""
         color_start = Colors.BOLD + Colors.WARNING
         color_end = Colors.ENDC + Colors.BOLD

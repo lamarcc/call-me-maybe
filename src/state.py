@@ -156,9 +156,12 @@ class GenerateJSON():
             actual: Current state to transition from.
 
         Returns:
-            Next state according to the state transition table, or None if at FINISH.
+            Next state according to the state transition table.
         """
         if actual is None:
             return
         self._actual_state = self.step[actual]
         return self.step[actual]
+
+    def set_start(self) -> None:
+        self._actual_state = State.OPEN_START

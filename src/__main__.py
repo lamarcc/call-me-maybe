@@ -1,5 +1,6 @@
-from llm_sdk import Small_LLM_Model
+from llm_sdk.llm_sdk import Small_LLM_Model
 from pathlib import Path
+from rich.progress import track
 import argparse
 import sys
 import json
@@ -12,8 +13,8 @@ def create_output(dir_path: str, outputs: list[dict]) -> None:
     """Write generated function calls to a JSON file.
 
     Args:
-        dir_path: Output file path. Defaults to 'data/output/functions_calls.json'
-                  if None or empty.
+        dir_path: Output file path. Defaults to
+                  'data/output/functions_calls.json' if None or empty.
         outputs: List of dictionaries containing generated function calls.
 
     Raises:
@@ -69,21 +70,21 @@ def main() -> int:
         agent = Small_LLM_Model()
         gener = generate.Generator(agent, data.all_functions)
         dicts = []
-        for prompt in data.all_prompts:
+        for prompt in track(data.all_prompts, description="Processing..."):
             try:
                 dicts.append(gener.build(prompt.prompt, data.all_functions))
             except errors.GenerationError as e:
-                print(f'{e} (prompt: "{prompt.prompt}")')
+                print(f'{e} <{prompt.prompt}>')
                 dicts.append(
                     {
-                        "prompt": prompt,
+                        "prompt": json.dumps(prompt.prompt)[1:-1],
                         "name": "None",
                         "parameters": {"None": "None"}
                     }
                 )
         create_output(args.output, dicts)
-    except KeyboardInterrupt as e:
-        print(errors.ProgramError.msg(e, "Program interrupted"), end="")
+    except KeyboardInterrupt:
+        print(errors.ProgramError.msg("Program interrupted"), end="")
     except errors.ParsingError as e:
         print(e)
         return 1

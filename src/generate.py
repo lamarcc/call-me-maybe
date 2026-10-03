@@ -1,14 +1,16 @@
 from __future__ import annotations
 from src.masking import Mask
 from src.state import GenerateJSON, State
+from typing import Any
 import numpy as np
 import src.errors as errors
 import json
-from typing import Any
 
 
 class Generator():
-    """Generate function calls with constrained decoding using token masking."""
+    """
+    Generate function calls with constrained decoding using token masking.
+    """
 
     def __init__(self, agent: Any, functions: dict) -> None:
         """Initialize the Generator with an LLM agent and function definitions.
@@ -17,10 +19,12 @@ class Generator():
             agent: LLM model instance with encode(), decode() and
                    get_logits_from_input_ids() methods.
             functions: Dictionary mapping function names to Function objects
-                      with name, description, parameters, and returns attributes.
+                       with name, description, parameters, and returns
+                       attributes.
         """
         self.agent = agent
         self.mask = Mask(agent)
+        self.generate = GenerateJSON()
         self.functions = functions
         self.all_function_name: list = [
             function.name for function in self.functions.values()
@@ -28,17 +32,24 @@ class Generator():
         self.encoded_names: list[list[int]] = [
             agent.encode(name).tolist()[0] for name in self.all_function_name
         ]
+        self.encoded_names.append(self._encode_string("None"))
         self.end_token: int = agent.encode("<|im_end|>").tolist()[0][0]
 
-    def _next_token(self, context: np.ndarray, allowed: np.ndarray) -> int:
-        """Generate the next token from the model, restricted to allowed tokens.
+    def _next_token(
+        self,
+        context: np.ndarray,
+        allowed: np.ndarray | None
+    ) -> int:
+        """Generate the next token from the model,
+        restricted to allowed tokens.
 
         Args:
             context: Array of token IDs representing the prompt context.
             allowed: Array of allowed token IDs to sample from.
 
         Returns:
-            The selected token ID with the highest probability among allowed tokens.
+            The selected token ID with the highest
+            probability among allowed tokens.
         """
         if allowed is not None and len(allowed) == 1:
             return int(allowed[0])
@@ -68,7 +79,8 @@ class Generator():
         return self.agent.decode(tokens)
 
     def _get_allowed_function(self, already_generated: list) -> Any:
-        """Get allowed tokens for the next position in function name generation.
+        """Get allowed tokens for the next position in
+        function name generation.
 
         Args:
             already_generated: List of token IDs already generated for the
@@ -102,7 +114,8 @@ class Generator():
             List of token IDs representing the selected function name.
 
         Raises:
-            FunctionNotFound: If no known function can be generated from the prompt.
+            FunctionNotFound: If no known function can be
+                              generated from the prompt.
         """
         names: str = ""
         for function in self.functions.values():
@@ -164,7 +177,8 @@ class Generator():
         Args:
             value: String representation of the generated value.
             parameter_name: Name of the parameter being validated.
-            parameter_type: Expected type (integer, float, number, boolean, string).
+            parameter_type: Expected type (integer, float, number,
+                            boolean, string).
 
         Returns:
             The value converted to the correct Python type.
@@ -198,14 +212,16 @@ class Generator():
             parameter_type: str,
             already_extracted: dict | None = None
     ) -> str | int | float:
-        """Generate a value for a single function parameter using constrained decoding.
+        """Generate a value for a single function parameter
+        using constrained decoding.
 
         Args:
             function: Function object being called.
             prompt: User request text providing context.
             parameter_name: Name of the parameter to generate a value for.
             parameter_type: Expected type of the parameter value.
-            already_extracted: Dictionary of previously extracted parameter values.
+            already_extracted: Dictionary of previously extracted
+            parameter values.
 
         Returns:
             The generated parameter value with correct type.
@@ -263,7 +279,7 @@ class Generator():
             parameter_type
         )
 
-    def build(self, prompt: str, all_functions: list) -> Any:
+    def build(self, prompt: str, all_functions: dict) -> Any:
         """Generate a complete JSON function call from a prompt.
 
         Orchestrates the entire generation process: selects the appropriate
@@ -272,7 +288,7 @@ class Generator():
 
         Args:
             prompt: User request text describing the function call to generate.
-            all_functions: List of available function definitions (used for context).
+            all_functions: List of available function definitions.
 
         Returns:
             Dictionary containing the generated function call with keys:
@@ -285,11 +301,13 @@ class Generator():
             "Build a json file\n"
             "<|im_end|>\n"
         )
-        generate = GenerateJSON()
         result = []
-        function = self.functions[self.agent.decode(
-            self._generate_function_name(prompt)
-        )]
+        self.generate.set_start()
+        function = self._decode_string(self._generate_function_name(prompt))
+        print(f"   Building prompt: {prompt}")
+        if function == "None":
+            raise errors.GenerationError("No known function for")
+        function = self.functions[function]
         extracted: dict = {}
         param_list: list = []
         type_list: list = []
@@ -308,9 +326,9 @@ class Generator():
             type_list.append(p_type)
             value_list.append(str(value))
         context_tokenized = self._encode_string(context)
-        while generate.get_state() != State.FINISH:
-            state = generate.get_state()
-            state_value = generate.get_value()
+        while self.generate.get_state() != State.FINISH:
+            state = self.generate.get_state()
+            state_value = self.generate.get_value()
             if state is State.PROMPT_VALUE:
                 p_token = self._encode_string(json.dumps(prompt)[1:-1])
                 for token in p_token:
@@ -341,7 +359,7 @@ class Generator():
                 context_tokenized.append(token)
             if state is State.PARAMETER_VALUE and param_left > 1:
                 param_left -= 1
-                generate._actual_state = State.COMMA_AFTER_PARAMETER_VALUE
+                self.generate._actual_state = State.COMMA_AFTER_PARAMETER_VALUE
             else:
-                generate.next_state(generate.get_state())
+                self.generate.next_state(self.generate.get_state())
         return json.loads(self._decode_string(result))

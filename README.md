@@ -365,24 +365,26 @@ The system was tested against intentionally malformed inputs:
 
 ### References and Documentation
 
-1. **Constrained Decoding & Grammars**:
-   - *Grammar-Aligned Decoding for Structured Language Model Generation* (Willard & Louf, 2023).
-   - [Hugging Face Transformers Documentation](https://huggingface.co/docs/transformers) - Logit processors and generation pipeline.
-   - [Qwen Model Family](https://huggingface.co/Qwen) - Architecture and tokenization specifications for `Qwen3-0.6B`.
-2. **Data Validation & Parsing**:
-   - [Pydantic v2 Documentation](https://docs.pydantic.dev/latest/) - Fast data validation using Python type annotations.
-   - [ECMA-404 JSON Data Interchange Standard](https://www.json.org/json-en.html) - Structural grammar for valid JSON.
-3. **Python Tooling**:
-   - [Astral uv Documentation](https://docs.astral.sh/uv/) - Fast Python package resolution and environment management.
-   - [Mypy Documentation](https://mypy.readthedocs.io/) - Static type checking for Python.
+- [Call Me Maybe subject](link-to-the-subject-if-public) — Project requirements,
+  expected JSON format, and constrained decoding rules.
+- [Qwen3-0.6B model card](https://huggingface.co/Qwen/Qwen3-0.6B) —
+  Information about the model used in this project.
+- [NumPy argmax documentation](https://numpy.org/doc/stable/reference/generated/numpy.argmax.html) —
+  Selecting the highest-scoring token after applying a logits mask.
+- [Qwen chat template concepts](https://qwen.readthedocs.io/en/latest/getting_started/concepts.html) —
+  ChatML message structure and thinking modes.
 
 ### AI Usage Disclosure
 
 In compliance with 42 curriculum guidelines and AI usage instructions:
-- **Tasks Assisted by AI**:
-  - Conceptual brainstorming on finite state machine representations for JSON generation.
-  - Formulating edge cases for subword tokenization (leading whitespace and punctuation handling).
-  - Reviewing docstring clarity and structuring the comprehensive project documentation.
-- **Verification & Responsibility**:
-  - All code in `src/` was tested, debugged, and validated directly.
-  - Every architectural choice (token masking, FSM design, Pydantic data models) was reviewed to ensure strict compliance with project constraints (no forbidden libraries like Outlines/DSPy, graceful error handling, 100% valid JSON).
+
+- **Tasks assisted by AI**:
+  - Drafting and improving the README.
+  - Generating test cases, including edge cases.
+  - Summarizing documentation to support understanding of the tools and concepts used.
+  - Drafting and improving docstrings.
+
+- **Verification and responsibility**:
+  - AI-generated content was reviewed and adapted before use.
+  - Test cases were checked against the project requirements.
+  - The implementation and its correctness remain my responsibility.

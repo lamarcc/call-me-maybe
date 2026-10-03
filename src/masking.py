@@ -3,7 +3,9 @@ import numpy as np
 
 
 class Mask():
-    """Restrict token generation based on JSON structure and parameter types."""
+    """
+    Restrict token generation based on JSON structure and parameter types.
+    """
 
     def __init__(self, agent: Any) -> None:
         """Initialize the mask with encoding agent and closing tokens.
@@ -101,7 +103,8 @@ class Mask():
         """Get allowed tokens based on the parameter type.
 
         Args:
-            value_type: Type of value (integer, float, number, boolean, string).
+            value_type: Type of value (integer, float, number,
+                        boolean, string).
             value: Current value string being generated.
 
         Returns:
@@ -121,7 +124,7 @@ class Mask():
         raise ValueError(f"Unknown type: {value_type}")
 
     def mask_logits(
-        self, allowed: np.ndarray, logits: np.ndarray
+        self, allowed: np.ndarray | None, logits: np.ndarray
     ) -> np.ndarray:
         """Apply mask to logits, restricting to allowed tokens.
 
