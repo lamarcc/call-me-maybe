@@ -9,7 +9,11 @@ ALLOWED_TYPES = ("number", "integer", "float", "string", "boolean")
 
 
 class Prompt(BaseModel):
-    """One user request, read from the prompts file."""
+    """One user request, read from the prompts file.
+
+    Attributes:
+        prompt: User request text that must be non-empty.
+    """
 
     prompt: str = Field(min_length=1)
 
@@ -17,12 +21,14 @@ class Prompt(BaseModel):
 class Function(BaseModel):
     """One callable function, read from the function definitions file.
 
+    Represents a callable function with its metadata and parameter specifications.
+
     Attributes:
-    name -- unique name the model must generate
-    description -- text shown to the model to choose the function
-    parameters -- mapping of parameter name to {"type": <type>}
-    nb_parameters -- number of parameters, at least 1
-    returns -- type of the returned value, as {"type": <type>}
+        name: Unique name the model must generate when this function is needed.
+        description: Text shown to the model to help choose this function.
+        parameters: Mapping of parameter name to {"type": <type>} dictionaries.
+        nb_parameters: Number of parameters, at least 1.
+        returns: Expected return type as {"type": <type>} dictionary.
     """
 
     name: str = Field(min_length=1)
@@ -33,17 +39,27 @@ class Function(BaseModel):
 
 
 class Parse():
-    """Load and validate the two input files.
+    """Load and validate function definitions and prompts from JSON files.
 
-    Every problem raises a ParsingError, so the generator only receives
-    valid data.
+    Reads and validates both input files, ensuring data integrity. Every
+    problem raises a ParsingError so the generator only receives valid data.
+
+    Attributes:
+        prompt_path: Path to the prompts JSON file.
+        function_path: Path to the function definitions JSON file.
+        all_functions: Dictionary mapping function names to Function objects.
+        all_prompts: List of validated Prompt objects.
     """
 
     def __init__(self, f_path: Optional[str], p_path: Optional[str]) -> None:
-        """Store the input paths and prepare the empty results.
+        """Store the input paths and prepare empty results.
 
         A path that is None or empty falls back to its default file in
         data/input/.
+
+        Args:
+            f_path: Path to function definitions file, or None for default.
+            p_path: Path to prompts file, or None for default.
         """
         if p_path:
             self.prompt_path: str = p_path
@@ -57,10 +73,20 @@ class Parse():
         self.all_prompts: list = []
 
     def _load_json(self, path: str) -> list:
-        """Read a JSON file and return its top-level list.
+        """Read and parse a JSON file.
 
-        Raise InvalidJSON, NoPermissionErr or FileNotFoundErr when the
-        file cannot be read or does not contain a JSON list.
+        Loads a JSON file and validates it contains a top-level list.
+
+        Args:
+            path: Path to the JSON file to read.
+
+        Returns:
+            List containing the top-level JSON array.
+
+        Raises:
+            InvalidJSON: If file is not valid JSON or doesn't contain a list.
+            NoPermissionErr: If the file cannot be read due to permissions.
+            FileNotFoundErr: If the file does not exist or is a directory.
         """
         try:
             with open(path, "r", encoding="utf-8") as file:
@@ -78,9 +104,13 @@ class Parse():
         return content
 
     def prompt(self) -> None:
-        """Fill all_prompts from the prompts file.
+        """Load and validate prompts from the input file.
 
-        Raise InvalidPrompt when an entry has no non-empty "prompt" string.
+        Fills all_prompts list with validated Prompt objects from the
+        JSON file.
+
+        Raises:
+            InvalidPrompt: If any entry has no non-empty "prompt" string.
         """
         for i, prompts in enumerate(self._load_json(self.prompt_path)):
             try:
@@ -92,12 +122,15 @@ class Parse():
                 )
 
     def function(self) -> None:
-        """Fill all_functions from the function definitions file.
+        """Load and validate functions from the function definitions file.
 
-        Raise InvalidFunctionDefinition when an entry is malformed, a name
-        is defined twice or the file has no function. Raise
-        InvalidParameterValue when a parameter type is not in
-        ALLOWED_TYPES.
+        Fills all_functions dictionary with validated Function objects from
+        the JSON file.
+
+        Raises:
+            InvalidFunctionDefinition: If an entry is malformed, a name is
+                                      defined twice, or the file has no functions.
+            InvalidParameterValue: If a parameter type is not in ALLOWED_TYPES.
         """
         for i, funcs in enumerate(self._load_json(self.function_path)):
             try:

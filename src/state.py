@@ -4,6 +4,8 @@ from typing import Any
 
 
 class Vocab():
+    """Vocabulary of JSON structural characters."""
+
     OPEN_BRACE = '{'
     CLOSE_BRACE = '}'
     COLON = ':'
@@ -12,6 +14,11 @@ class Vocab():
 
 
 class State(Enum):
+    """States in the JSON generation state machine.
+
+    Represents all states needed to generate valid JSON with structure:
+    {"prompt": <value>, "name": <function_name>, "parameters": {<params>}}
+    """
     OPEN_START = auto()
     OPEN_PARAMETER = auto()
     PROMPT_KEY = auto()
@@ -46,7 +53,18 @@ class State(Enum):
 
 
 class GenerateJSON():
+    """State machine for generating valid JSON function call structures.
+
+    Tracks current state and provides transitions and output values for each
+    state to ensure generated JSON remains valid throughout token generation.
+    """
+
     def __init__(self) -> None:
+        """Initialize the state machine.
+
+        Sets up the step transitions between states and output values for each
+        state that guide the token generation process.
+        """
         self._actual_state: State = State.OPEN_START
         self.step: dict[State, State | Any] = {
             State.OPEN_START: State.QUOTE_BEFORE_PKEY,
@@ -116,12 +134,30 @@ class GenerateJSON():
         }
 
     def get_state(self) -> State:
+        """Get the current state of the state machine.
+
+        Returns:
+            Current State enumeration value.
+        """
         return self._actual_state
 
     def get_value(self) -> str:
+        """Get the output value for the current state.
+
+        Returns:
+            String value to be output or generated for the current state.
+        """
         return self.value[self._actual_state]
 
     def next_state(self, actual: State) -> State:
+        """Transition to the next state.
+
+        Args:
+            actual: Current state to transition from.
+
+        Returns:
+            Next state according to the state transition table, or None if at FINISH.
+        """
         if actual is None:
             return
         self._actual_state = self.step[actual]

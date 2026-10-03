@@ -8,7 +8,17 @@ from typing import Any
 
 
 class Generator():
+    """Generate function calls with constrained decoding using token masking."""
+
     def __init__(self, agent: Any, functions: dict) -> None:
+        """Initialize the Generator with an LLM agent and function definitions.
+
+        Args:
+            agent: LLM model instance with encode(), decode() and
+                   get_logits_from_input_ids() methods.
+            functions: Dictionary mapping function names to Function objects
+                      with name, description, parameters, and returns attributes.
+        """
         self.agent = agent
         self.mask = Mask(agent)
         self.functions = functions
@@ -21,18 +31,53 @@ class Generator():
         self.end_token: int = agent.encode("<|im_end|>").tolist()[0][0]
 
     def _next_token(self, context: np.ndarray, allowed: np.ndarray) -> int:
+        """Generate the next token from the model, restricted to allowed tokens.
+
+        Args:
+            context: Array of token IDs representing the prompt context.
+            allowed: Array of allowed token IDs to sample from.
+
+        Returns:
+            The selected token ID with the highest probability among allowed tokens.
+        """
         if allowed is not None and len(allowed) == 1:
             return int(allowed[0])
         logits = self.agent.get_logits_from_input_ids(context)
         return int(self.mask.mask_logits(allowed, logits).argmax())
 
     def _encode_string(self, string: str) -> Any:
+        """Encode a string into token IDs.
+
+        Args:
+            string: Text to encode.
+
+        Returns:
+            List of token IDs.
+        """
         return self.agent.encode(string).tolist()[0]
 
     def _decode_string(self, tokens: list) -> Any:
+        """Decode token IDs back into a string.
+
+        Args:
+            tokens: List of token IDs to decode.
+
+        Returns:
+            The decoded text string.
+        """
         return self.agent.decode(tokens)
 
     def _get_allowed_function(self, already_generated: list) -> Any:
+        """Get allowed tokens for the next position in function name generation.
+
+        Args:
+            already_generated: List of token IDs already generated for the
+                             function name.
+
+        Returns:
+            NumPy array of allowed token IDs that form valid function names
+            or the end token.
+        """
         allowed = set()
         size = len(already_generated)
         for encoded in self.encoded_names:
@@ -45,6 +90,20 @@ class Generator():
         return np.array(list(allowed), dtype=np.int32)
 
     def _generate_function_name(self, prompt: str) -> list:
+        """Generate a function name from a prompt using constrained decoding.
+
+        Uses the LLM to select the most appropriate function from the available
+        functions, constrained to only generate valid function name tokens.
+
+        Args:
+            prompt: User request text to determine the function.
+
+        Returns:
+            List of token IDs representing the selected function name.
+
+        Raises:
+            FunctionNotFound: If no known function can be generated from the prompt.
+        """
         names: str = ""
         for function in self.functions.values():
             names += f"- {function.name}: {function.description}\n"
@@ -80,6 +139,15 @@ class Generator():
         )
 
     def _extract_param_value(self, function: Any, prompt: str) -> Any:
+        """Extract parameter names and types from a function definition.
+
+        Args:
+            function: Function object with parameters attribute.
+            prompt: User prompt (unused but kept for API consistency).
+
+        Returns:
+            Dictionary mapping parameter names to their types.
+        """
         return {
             p_name: p_type["type"]
             for p_name, p_type in function.parameters.items()
@@ -91,6 +159,20 @@ class Generator():
         parameter_name: str,
         parameter_type: str
     ) -> str | int | float:
+        """Validate and convert a generated value to its correct type.
+
+        Args:
+            value: String representation of the generated value.
+            parameter_name: Name of the parameter being validated.
+            parameter_type: Expected type (integer, float, number, boolean, string).
+
+        Returns:
+            The value converted to the correct Python type.
+
+        Raises:
+            InvalidGeneratedValue: If the value cannot be converted to the
+                                  specified type.
+        """
         try:
             if parameter_type == "integer":
                 return int(value)
@@ -116,6 +198,22 @@ class Generator():
             parameter_type: str,
             already_extracted: dict | None = None
     ) -> str | int | float:
+        """Generate a value for a single function parameter using constrained decoding.
+
+        Args:
+            function: Function object being called.
+            prompt: User request text providing context.
+            parameter_name: Name of the parameter to generate a value for.
+            parameter_type: Expected type of the parameter value.
+            already_extracted: Dictionary of previously extracted parameter values.
+
+        Returns:
+            The generated parameter value with correct type.
+
+        Raises:
+            InvalidGeneratedValue: If the value cannot be generated within the
+                                  token limit or has an invalid type.
+        """
         args_prefix = ""
         if already_extracted:
             args_prefix = ", ".join(
@@ -166,6 +264,22 @@ class Generator():
         )
 
     def build(self, prompt: str, all_functions: list) -> Any:
+        """Generate a complete JSON function call from a prompt.
+
+        Orchestrates the entire generation process: selects the appropriate
+        function, generates values for all its parameters, and builds a valid
+        JSON structure containing the function call.
+
+        Args:
+            prompt: User request text describing the function call to generate.
+            all_functions: List of available function definitions (used for context).
+
+        Returns:
+            Dictionary containing the generated function call with keys:
+            - prompt: The input prompt
+            - name: The selected function name
+            - parameters: Dictionary of parameter names to generated values
+        """
         context = (
             "<|im_start|>system\n"
             "Build a json file\n"

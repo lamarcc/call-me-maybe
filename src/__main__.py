@@ -9,6 +9,17 @@ import src.generate as generate
 
 
 def create_output(dir_path: str, outputs: list[dict]) -> None:
+    """Write generated function calls to a JSON file.
+
+    Args:
+        dir_path: Output file path. Defaults to 'data/output/functions_calls.json'
+                  if None or empty.
+        outputs: List of dictionaries containing generated function calls.
+
+    Raises:
+        DirCreationError: If the output directory cannot be created due to
+                         permission issues.
+    """
     output_path = Path(dir_path) if dir_path else Path(
         'data/output/functions_calls.json'
     )
@@ -23,6 +34,12 @@ def create_output(dir_path: str, outputs: list[dict]) -> None:
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse command-line arguments.
+
+    Returns:
+        Namespace containing optional arguments for function definition file,
+        input prompts file, and output file paths.
+    """
     parse = argparse.ArgumentParser()
     parse.add_argument("--function_definition", type=str)
     parse.add_argument("--input", type=str)
@@ -31,6 +48,19 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    """Main program execution function.
+
+    Orchestrates the entire workflow: parse arguments, load data, generate
+    function calls using an LLM, and write results to output file.
+
+    Returns:
+        0 if successful, 1 if a parsing error occurred.
+
+    Handles:
+        KeyboardInterrupt: Gracefully terminates on user interrupt.
+        ParsingError: Catches and prints data validation errors.
+        ProgramError: Catches and prints other program errors.
+    """
     try:
         args = parse_args()
         data = parsing.Parse(args.function_definition, args.input)
