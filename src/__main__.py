@@ -3,9 +3,9 @@ from pathlib import Path
 import argparse
 import sys
 import json
-import errors
-import parsing
-import generate
+import src.errors as errors
+import src.parsing as parsing
+import src.generate as generate
 
 
 def create_output(dir_path: str, outputs: list[dict]) -> None:

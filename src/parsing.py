@@ -2,7 +2,7 @@ from __future__ import annotations
 from pydantic import BaseModel, Field, ValidationError
 from typing import Any, Optional
 import json
-import errors
+import src.errors as errors
 
 
 ALLOWED_TYPES = ("number", "integer", "float", "string", "boolean")

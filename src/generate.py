@@ -1,8 +1,8 @@
 from __future__ import annotations
-from masking import Mask
-from state import GenerateJSON, State
+from src.masking import Mask
+from src.state import GenerateJSON, State
 import numpy as np
-import errors
+import src.errors as errors
 import json
 from typing import Any
 
