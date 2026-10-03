@@ -1,11 +1,12 @@
+from typing import Any
 import numpy as np
 
 
 class Mask():
-    def __init__(self, agent) -> None:
+    def __init__(self, agent: Any) -> None:
         self.agent = agent
         closers = ['"', '",', '"}', '"\n', '",\n', '}\n', '}', ',']
-        tokens = set()
+        tokens: set = set()
         for c in closers:
             tokens.update(self.get_token(c))
         self.closing_tokens: np.ndarray = np.array(
@@ -25,7 +26,7 @@ class Mask():
             allowed.append(" ")
         if number == "":
             allowed.extend(["-", " -"])
-        allowed_token = set()
+        allowed_token: set = set()
         for c in allowed:
             allowed_token.update(self.get_token(c))
         if number not in ["", "-"]:
@@ -41,7 +42,7 @@ class Mask():
             allowed.append(" ")
         if number == "":
             allowed.extend(["-", " -"])
-        allowed_token = set()
+        allowed_token: set = set()
         for c in allowed:
             allowed_token.update(self.get_token(c))
         if number not in ["", "-"] and not number.endswith("."):
@@ -49,13 +50,15 @@ class Mask():
         return np.array(list(allowed_token), dtype=np.int32)
 
     def _get_boolean(self, value: str = "") -> np.ndarray:
-        allowed = set()
+        allowed: set = set()
         for word in ["true", "false"]:
             allowed.update(self.get_token(word))
         allowed.update(self.closing_tokens.tolist())
         return np.array(list(allowed), dtype=np.int32)
 
-    def _get_allowed_type(self, value_type: str, value: str) -> np.ndarray:
+    def _get_allowed_type(
+        self, value_type: str, value: str
+    ) -> np.ndarray | None:
         if value_type == "integer":
             return self._get_int(value)
         if value_type == "float" or value_type == "number":
@@ -66,7 +69,9 @@ class Mask():
             return None
         raise ValueError(f"Unknown type: {value_type}")
 
-    def mask_logits(self, allowed, logits) -> np.ndarray:
+    def mask_logits(
+        self, allowed: np.ndarray, logits: np.ndarray
+    ) -> np.ndarray:
         logits = np.asarray(logits, dtype=np.float32)
         if allowed is None or allowed.size == 0:
             return logits

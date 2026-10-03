@@ -1,3 +1,6 @@
+from typing import Any
+
+
 class Colors():
     """ANSI codes for coloring and formatting console output."""
 
@@ -23,14 +26,14 @@ class ProgramError(Exception):
     message -- explanation of what went wrong
     """
 
-    name: str = "CallError"
+    name: str = "ProgramError"
 
     def __init__(self, message: str) -> None:
         """Store the message that explains the error."""
         super().__init__(message)
-        self.message: str = message
+        self.message = message
 
-    def __str__(self) -> str:
+    def __str__(self) -> Any:
         """Return '<name>: <message>' with ANSI colors."""
         color_start = Colors.BOLD + Colors.FAIL
         color_end = Colors.ENDC + Colors.BOLD
@@ -39,7 +42,7 @@ class ProgramError(Exception):
             + self.message + Colors.ENDC
         )
 
-    def message(self, message) -> str:
+    def msg(self, message: str) -> str:
         """Return a message with ANSI colors."""
         color_start = Colors.BOLD + Colors.WARNING
         color_end = Colors.ENDC + Colors.BOLD
@@ -113,3 +116,9 @@ class InvalidGeneratedValue(GenerationError):
     """Raise when a generated value is unclosed or has the wrong type."""
 
     name = "InvalidGeneratedValue"
+
+
+class DirCreationError(ProgramError):
+    """Raise when the directory already exist while trying creating it"""
+
+    name = "DirCreationError"

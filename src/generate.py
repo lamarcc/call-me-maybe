@@ -4,10 +4,11 @@ from state import GenerateJSON, State
 import numpy as np
 import errors
 import json
+from typing import Any
 
 
 class Generator():
-    def __init__(self, agent, functions) -> None:
+    def __init__(self, agent: Any, functions: dict) -> None:
         self.agent = agent
         self.mask = Mask(agent)
         self.functions = functions
@@ -19,19 +20,19 @@ class Generator():
         ]
         self.end_token: int = agent.encode("<|im_end|>").tolist()[0][0]
 
-    def _next_token(self, context, allowed) -> int:
+    def _next_token(self, context: np.ndarray, allowed: np.ndarray) -> int:
         if allowed is not None and len(allowed) == 1:
             return int(allowed[0])
         logits = self.agent.get_logits_from_input_ids(context)
         return int(self.mask.mask_logits(allowed, logits).argmax())
 
-    def _encode_string(self, string):
+    def _encode_string(self, string: str) -> Any:
         return self.agent.encode(string).tolist()[0]
 
-    def _decode_string(self, tokens):
+    def _decode_string(self, tokens: list) -> Any:
         return self.agent.decode(tokens)
 
-    def _get_allowed_function(self, already_generated):
+    def _get_allowed_function(self, already_generated: list) -> Any:
         allowed = set()
         size = len(already_generated)
         for encoded in self.encoded_names:
@@ -43,7 +44,7 @@ class Generator():
                 allowed.add(self.end_token)
         return np.array(list(allowed), dtype=np.int32)
 
-    def _generate_function_name(self, prompt):
+    def _generate_function_name(self, prompt: str) -> list:
         names: str = ""
         for function in self.functions.values():
             names += f"- {function.name}: {function.description}\n"
@@ -75,10 +76,10 @@ class Generator():
             result.append(token_generated)
         raise errors.FunctionNotFound(
             'No known function matches '
-            f'(generated: "{self.decode_string(result)}")'
+            f'(generated: "{self._decode_string(result)}")'
         )
 
-    def _extract_param_value(self, function, prompt):
+    def _extract_param_value(self, function: Any, prompt: str) -> Any:
         return {
             p_name: p_type["type"]
             for p_name, p_type in function.parameters.items()
@@ -86,10 +87,10 @@ class Generator():
 
     def _check_generated_value(
         self,
-        value,
-        parameter_name,
-        parameter_type
-    ) -> None:
+        value: str,
+        parameter_name: str,
+        parameter_type: str
+    ) -> str | int | float:
         try:
             if parameter_type == "integer":
                 return int(value)
@@ -109,12 +110,12 @@ class Generator():
 
     def _get_value(
             self,
-            function,
-            prompt,
-            parameter_name,
-            parameter_type,
+            function: Any,
+            prompt: str,
+            parameter_name: str,
+            parameter_type: str,
             already_extracted: dict | None = None
-    ) -> str:
+    ) -> str | int | float:
         args_prefix = ""
         if already_extracted:
             args_prefix = ", ".join(
@@ -138,7 +139,7 @@ class Generator():
         stop_chars = '",}\n' if numeric else '"'
         if not numeric:
             context += ' "'
-        result = []
+        result: list = []
         context_tokenized = self._encode_string(context)
         max_tokens = 50
         for _ in range(max_tokens):
@@ -164,7 +165,7 @@ class Generator():
             parameter_type
         )
 
-    def build(self, prompt, all_functions):
+    def build(self, prompt: str, all_functions: list) -> Any:
         context = (
             "<|im_start|>system\n"
             "Build a json file\n"
@@ -175,10 +176,10 @@ class Generator():
         function = self.functions[self.agent.decode(
             self._generate_function_name(prompt)
         )]
-        extracted = {}
-        param_list = []
-        type_list = []
-        value_list = []
+        extracted: dict = {}
+        param_list: list = []
+        type_list: list = []
+        value_list: list = []
         params = self._extract_param_value(function, prompt)
         for p_name, p_type in params.items():
             value = self._get_value(

@@ -4,20 +4,18 @@ PYTHON      = python3
 RM          = rm -rf
 MYPYFLAGS   = --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs
 
-SRCS        = src/
-
 install:
 	$(UV) sync
 
 run:
-	$(UV) run $(SRCS)
+	$(UV) run src
 
 debug:
-	$(UV) run $(PYTHON) -m pdb $(SRCS)
+	$(UV) run $(PYTHON) -m pdb -m src
 
 lint:
-	$(UV) run flake8 . --exclude .venv llm_sdk
-	$(UV) run mypy . $(MYPYFLAGS)
+	$(UV) run flake8 . --exclude=.venv,llm_sdk
+	$(UV) run $(PYTHON) -m mypy . $(MYPYFLAGS) --exclude llm_sdk --exclude .venv
 
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} +

@@ -1,5 +1,6 @@
 from __future__ import annotations
 from enum import Enum, auto
+from typing import Any
 
 
 class Vocab():
@@ -47,7 +48,7 @@ class State(Enum):
 class GenerateJSON():
     def __init__(self) -> None:
         self._actual_state: State = State.OPEN_START
-        self.step: dict[State, State] = {
+        self.step: dict[State, State | Any] = {
             State.OPEN_START: State.QUOTE_BEFORE_PKEY,
             State.QUOTE_BEFORE_PKEY: State.PROMPT_KEY,
             State.PROMPT_KEY: State.QUOTE_AFTER_PKEY,

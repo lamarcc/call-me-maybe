@@ -1,10 +1,25 @@
 from llm_sdk import Small_LLM_Model
-import parsing
-import generate
+from pathlib import Path
 import argparse
-import errors
 import sys
 import json
+import errors
+import parsing
+import generate
+
+
+def create_output(dir_path: str, outputs: list[dict]) -> None:
+    output_path = Path(dir_path) if dir_path else Path(
+        'data/output/functions_calls.json'
+    )
+    try:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(output_path, "w", encoding="utf-8") as file:
+            json.dump(outputs, file, indent=2)
+    except PermissionError:
+        raise errors.DirCreationError(
+            "Permission denied, can not create output directory"
+        )
 
 
 def parse_args() -> argparse.Namespace:
@@ -16,20 +31,14 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
-    args = parse_args()
     try:
+        args = parse_args()
         data = parsing.Parse(args.function_definition, args.input)
         data.prompt()
         data.function()
-    except errors.ParsingError as e:
-        print(e)
-        return 1
-    agent = Small_LLM_Model()
-    gener = generate.Generator(agent, data.all_functions)
-    dicts = []
-    if not args.output:
-        args.output = 'data/output/output.json'
-    try:
+        agent = Small_LLM_Model()
+        gener = generate.Generator(agent, data.all_functions)
+        dicts = []
         for prompt in data.all_prompts:
             try:
                 dicts.append(gener.build(prompt.prompt, data.all_functions))
@@ -42,11 +51,15 @@ def main() -> int:
                         "parameters": {"None": "None"}
                     }
                 )
-        print(dicts)
-        with open(args.output, "w", encoding="utf-8") as file:
-            json.dump(dicts, file, indent=2)
+        create_output(args.output, dicts)
     except KeyboardInterrupt as e:
-        print(errors.ProgramError.message(e, "Program interrupted"), end="")
+        print(errors.ProgramError.msg(e, "Program interrupted"), end="")
+    except errors.ParsingError as e:
+        print(e)
+        return 1
+    except errors.ProgramError as e:
+        print(e)
+        return 1
     return 0
 
 
