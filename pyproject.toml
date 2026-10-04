@@ -5,12 +5,14 @@ requires-python = ">=3.10"
 dependencies = [
   "numpy",
   "pydantic>=2,<3",
-  "llm_sdk",
+  "llm-sdk",
   "mypy",
   "flake8",
   "accelerate",
   "rich"
 ]
 
+
 [tool.uv.sources]
-llm_sdk = { path = "./llm_sdk", editable = true }
+llm-sdk = { path = "llm_sdk", editable = true }
+

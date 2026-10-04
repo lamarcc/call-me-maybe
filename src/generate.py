@@ -307,7 +307,7 @@ class Generator():
         function = self._decode_string(self._generate_function_name(prompt))
         print(f"   Building prompt: {prompt}")
         if function == "None":
-            print(Colors.FAIL + "   FAILED" + Colors.ENDC, end=" - ")
+            print(Colors.FAIL + "   - FAILED" + Colors.ENDC, end=" - ")
             raise errors.GenerationError("No known function for")
         function = self.functions[function]
         extracted: dict = {}
@@ -346,7 +346,9 @@ class Generator():
                 for token in param_token:
                     result.append(token)
             elif state is State.PARAMETER_VALUE:
-                value_token = self._encode_string(value_list[0])
+                value_token = self._encode_string(
+                    json.dumps(value_list[0])[1:-1]
+                )
                 value_list.pop(0)
                 if type_list[0] == "string" or type_list[0] == "boolean":
                     value_token.insert(0, 1)
@@ -364,5 +366,5 @@ class Generator():
                 self.generate._actual_state = State.COMMA_AFTER_PARAMETER_VALUE
             else:
                 self.generate.next_state(self.generate.get_state())
-        print(Colors.OKGREEN + "   SUCCESS" + Colors.ENDC)
+        print(Colors.OKGREEN + "   - SUCCESS" + Colors.ENDC)
         return json.loads(self._decode_string(result))

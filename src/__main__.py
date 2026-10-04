@@ -1,8 +1,9 @@
-from llm_sdk import Small_LLM_Model
+from llm_sdk import Small_LLM_Model  # type: ignore[attr-defined]
 from pathlib import Path
 from rich.progress import track
 import argparse
 import sys
+import os
 import json
 import src.errors as errors
 import src.parsing as parsing
@@ -63,6 +64,7 @@ def main() -> int:
         ProgramError: Catches and prints other program errors.
     """
     try:
+        os.system("clear")
         args = parse_args()
         data = parsing.Parse(args.function_definition, args.input)
         data.prompt()
