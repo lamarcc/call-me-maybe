@@ -1,4 +1,4 @@
-from llm_sdk.llm_sdk import Small_LLM_Model
+from llm_sdk import Small_LLM_Model
 from pathlib import Path
 from rich.progress import track
 import argparse
@@ -79,7 +79,7 @@ def main() -> int:
                     {
                         "prompt": json.dumps(prompt.prompt)[1:-1],
                         "name": "None",
-                        "parameters": {"None": "None"}
+                        "parameters": {"undefined": "None"}
                     }
                 )
         create_output(args.output, dicts)

@@ -4,6 +4,7 @@ from src.state import GenerateJSON, State
 from typing import Any
 import numpy as np
 import src.errors as errors
+from src.errors import Colors
 import json
 
 
@@ -306,6 +307,7 @@ class Generator():
         function = self._decode_string(self._generate_function_name(prompt))
         print(f"   Building prompt: {prompt}")
         if function == "None":
+            print(Colors.FAIL + "   FAILED" + Colors.ENDC, end=" - ")
             raise errors.GenerationError("No known function for")
         function = self.functions[function]
         extracted: dict = {}
@@ -362,4 +364,5 @@ class Generator():
                 self.generate._actual_state = State.COMMA_AFTER_PARAMETER_VALUE
             else:
                 self.generate.next_state(self.generate.get_state())
+        print(Colors.OKGREEN + "   SUCCESS" + Colors.ENDC)
         return json.loads(self._decode_string(result))
